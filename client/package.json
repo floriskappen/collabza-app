@@ -1,26 +1,33 @@
 {
-    "name": "client",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "serve": "vue-cli-service serve",
-        "build": "vue-cli-service build",
-        "lint": "vue-cli-service lint"
-    },
-    "dependencies": {
-        "core-js": "^3.4.3",
-        "node-sass": "^4.13.0",
-        "sass-loader": "^8.0.0",
-        "update": "^0.7.4",
-        "vue": "^2.6.10"
-    },
-    "devDependencies": {
-        "@vue/cli-service": "^4.1.0",
-        "babel-eslint": "^10.0.3",
-        "vue-template-compiler": "^2.6.10"
-    },
-    "browserslist": [
-        "> 1%",
-        "last 2 versions"
-    ]
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "core-js": "^3.4.3",
+    "node-sass": "^4.13.0",
+    "paper": "^0.12.4",
+    "sass-loader": "^8.0.0",
+    "socket.io-client": "^2.3.0",
+    "update": "^0.7.4",
+    "vue": "^2.6.10"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "^4.1.0",
+    "babel-eslint": "^10.0.3",
+    "vue-template-compiler": "^2.6.10"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ],
+  "description": "## Project setup ``` npm install ```",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
