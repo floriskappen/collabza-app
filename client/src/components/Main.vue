@@ -92,8 +92,6 @@ export default {
         function handleMouseDown(event, id) {
             paths[id] = new paper.Path()
             paths[id].strokeColor = 'black'
-            let point = new paper.Point(100, 100)
-            paths[id].moveTo(point)
         }
         function handleMouseDrag(event, id) {
             paths[id].add(event.point)
