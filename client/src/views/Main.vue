@@ -1,5 +1,5 @@
 <template>
-    <div class="main" @mousemove="handleMouseMove($event)" @wheel>
+    <div class="main" @mousemove="handleMouseMove($event)">
         <transition name="fade">
             <div class="modules-wrapper" v-if="showOverlays">
                 <div class="module module-draw">
