@@ -95,9 +95,10 @@ export default {
         }
         function handleMouseDrag(event, id) {
             paths[id].add(event.point)
+            paths[id].smooth(100)
         }
         function handleMouseUp(event, id) {
-            paths[id].simplify(50)
+            paths[id].simplify(0)
         }
 
         function sendDataInstantly() {
