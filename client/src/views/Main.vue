@@ -1,20 +1,90 @@
 <template>
     <div class="main" @mousemove="handleMouseMove($event)">
         <transition name="fade">
-            <div class="modules-wrapper" v-if="showOverlays">
+            <div class="modules-wrapper" v-if="showOverlays" @mouseenter="overlaysHovered = true" @mouseleave="overlaysHovered = false">
                 <div class="module module-draw">
                     <div class="title">Draw</div>
+                    <div class="split"></div>
                     <div class="top-row">
-                        <div class="drawing-control draw"></div>
-                        <div class="drawing-control erase"></div>
-                    </div>
-                    <div class="bottom-row">
-                        <div class="recent-colors">
-                            <div class="color recent"></div>
-                            <div class="color recent"></div>
-                            <div class="color recent"></div>
+                        <div class="drawing-control draw">
+                            <i class="lni-pencil"></i>
                         </div>
-                        <div class="color custom"></div>
+                        <div class="drawing-control erase">
+                            <i class="lni-eraser"></i>
+                        </div>
+                    </div>
+                    <div class="split"></div>
+                    <div class="bottom-row">
+                        <div class="color recent"></div>
+                        <div class="color recent"></div>
+                        <div class="color recent"></div>
+                        <div class="custom">
+                            <i class="lni-color-pallet"></i>
+                        </div>
+                    </div>
+                    <div class="split"></div>
+                    <div class="stroke-preview">
+                        <div class="stroke"></div>
+                        <input type="text" class="color-code" value="#000000" />
+                    </div>
+                </div>
+            </div>
+        </transition>
+        <transition name="fade">
+            <div class="layers-wrapper" v-if="showOverlays" @mouseenter="overlaysHovered = true" @mouseleave="overlaysHovered = false">
+                <div class="title">Layers</div>
+                <div class="split"></div>
+                <div class="layers">
+                    <div class="layer">
+                        <div class="option visibility">
+                            <i class="lni-close"></i>
+                        </div>
+                        <div class="option dropdown">
+                            <i class="lni-chevron-right"></i>
+                        </div>
+                        <div class="option icon">
+                            <i class="lni-layers"></i>
+                        </div>
+                        <div class="name">
+                            <span>Layer 1</span>
+                        </div>
+                        <div class="option drag">
+                            <i class="lni-hand"></i>
+                        </div>
+                    </div>
+                    <div class="layer">
+                        <div class="option visibility">
+                            <i class="lni-eye"></i>
+                        </div>
+                        <div class="option dropdown">
+                            <i class="lni-chevron-down"></i>
+                        </div>
+                        <div class="option icon">
+                            <i class="lni-layers"></i>
+                        </div>
+                        <div class="name">
+                            <span>Layer 2 very long nameeeee mmmmmm</span>
+                        </div>
+                        <div class="option drag">
+                            <i class="lni-hand"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="split"></div>
+                <div class="bottom-icons">
+                    <!-- New layer -->
+                    <div class="icon new">
+                        <i class="lni-add-file"></i>
+                    </div>
+
+                    <!-- Copy layer -->
+                    <div class="icon copy">
+                        <i class="lni-files"></i>
+                    </div>
+
+                    <!-- Remove layer -->
+                    <div class="icon remove">
+                        <i class="lni-trash"></i>
                     </div>
                 </div>
             </div>
@@ -41,22 +111,210 @@
         width: 150px;
         height: 90vh;
         margin-left: 5vh;
-        margin-top: 5vh;
+        margin-top: 10vh;
         position: fixed;
+        color: #1b2136;
 
         .module {
-            background-color: #272a38;
-            width: 130px;
-            height: 130px;
+            background-color: #ffffff;
+            box-shadow: -5px 5px 20px #1f1f1f27;
+            width: 120px;
             border-radius: 5px;
-            padding: 10px;
+            padding: 10px 20px;
+            transition: height .2s;
+            height: 30px;
+            overflow: hidden;
+
+            .split {
+                width: 100%;
+                height: 0px;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.062);
+                margin: 10px 0px;
+            }
+
+            &:hover {
+                height: 200px;
+            }
 
             .title {
                 font-size: 20px;
+                margin-top: 5px;
+                margin-bottom: 15px;
             }
 
-            .module-draw {
-                .title {
+            &.module-draw {
+                .top-row {
+                    display: flex;
+                    justify-content: space-between;
+                    
+                    .drawing-control{
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 5px;
+                        color: black;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        cursor: pointer;
+                        transition: background-color .2s, color .2s;
+
+                        &:hover {
+                            color: white;
+                            background-color: #02976c;
+                        }
+                    }
+                }
+
+                .bottom-row {
+                    display: flex;
+                    justify-content: space-between;
+                    .color {
+                        flex-shrink: 0;
+                        width: 20px;
+                        height: 20px;
+                        background-color: blue;
+                        cursor: pointer;
+                    }
+
+                    .custom {
+                        cursor: pointer;
+                        font-size: 20px;
+                    }
+                }
+
+                .stroke-preview {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    flex-direction: column;
+                    .stroke {
+                        width: 80%;
+                        height: 2px;
+                        background-color: blue;
+                    }
+
+                    .color-code {
+                        margin-top: 10px;
+                        border-radius: 5px;
+                        outline: none;
+                        border: 2px solid #02976d50;
+                        padding: 5px;
+                        width: 80%;
+                        color: #1b2136;
+
+                        &:focus {
+                            border: 2px solid #02976db0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    .layers-wrapper {
+        position: fixed;
+        background-color: blue;
+        right: 30px;
+        bottom: 30px;
+        color: #1b2136;
+        width: 150px;
+        height: 0px;
+        padding: 0px 30px;
+        padding-top: 15px;
+        padding-bottom: 40px;
+        border-radius: 5px;
+        transition: height .2s, width .2s;
+        overflow: hidden;
+        background-color: #ffffff;
+        box-shadow: -5px 5px 20px #1f1f1f27;
+
+        &:hover {
+            height: 400px;
+            width: 280px;
+        }
+
+        .title {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .split {
+            width: 100%;
+            height: 0px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.062);
+            margin: 10px 0px;
+        }
+
+        .layers {
+            width: 100%;
+            height: 300px;
+
+            .layer {
+                display: flex;
+                padding: 0px 10px;
+                transition: background-color .2s;
+                border: 1px solid #02976d21;
+                margin-bottom: 5px;
+                border-radius: 5px;
+
+                &:hover {
+                    background-color: #0000000a;
+                }
+
+                .option {
+                    width: 30px;
+                    height: 30px;
+                    flex-shrink: 0;
+                    display: flex;
+                    align-items: center;
+                    cursor: pointer;
+
+                    transition: color .2s;
+                    
+                    &:hover {
+                        color: #22cf9e;
+                    }
+                }
+
+                .name {
+                    flex-shrink: 0;
+                    width: 150px;
+                    text-align: left;
+
+                    span {
+                        transform: translateY(7px);
+                        width: 100%;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                }
+            }
+        }
+
+        .bottom-icons {
+            position: absolute;
+            top: 390px;
+            height: 30px;
+            width: calc(100% - 60px );
+            display: flex;
+            justify-content: space-between;
+            font-size: 24px;
+
+            .icon {
+                width: 40px;
+                height: 40px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: color .2s, background-color .2s;
+
+                &:hover {
+                    color: white;
+                    background-color: #02976c;
                 }
             }
         }
@@ -75,18 +333,19 @@
 import io from 'socket.io-client'
 import paper from 'paper'
 
-let socket = io.connect('localhost:3000')
-
 export default {
     data() {
         return {
             showOverlays: false,
-            mouseMovedTimeout: null
+            overlaysHovered: false,
+            mouseMovedTimeout: null,
+            manualTimeout: false
         }
     },
     mounted() {
-        let paths = {}
+        let socket = io.connect('localhost:3000')
 
+        let paths = {}
         let timeOut = null
 
         function handleMouseDown(event, id) {
@@ -103,9 +362,10 @@ export default {
 
         function sendDataInstantly() {
             clearInterval(timeOut)
-            if (!paths['me'].segments) {
+            if (!paths['me'].segments || !paths['me'].segments.length) {
                 return
             }
+
             socket.emit('send_full_drawing', paths['me'])
         }
         function sendDataSlowly() {
@@ -165,6 +425,12 @@ export default {
             paths[data.id].temp.removeSegments()
             paths[data.id].temp.insertSegments(0, data[1].segments)
         })
+
+        const uiInterval = setInterval(() => {
+            if (!this.overlaysHovered && this.showOverlays && !this.manualTimeout) {
+                this.showOverlays = false
+            }
+        }, 1000)
     },
     methods: {
         handleMouseMove(e) {
@@ -172,10 +438,18 @@ export default {
                 if (this.mouseMovedTimeout) {
                     clearTimeout(this.mouseMovedTimeout)
                 }
-                this.showOverlays = true
-                this.mouseMovedTimeout = setTimeout(() => {
-                    this.showOverlays = false
+                this.showOverlays = true,
+                this.manualTimeout = true
+
+                const mouseMovedTimeout = setTimeout(() => {
+                    if (!this.overlaysHovered) {
+                        this.showOverlays = false
+                        this.manualTimeout = false
+                    } else {
+                        this.mouseMovedTimeout = mouseMovedTimeout
+                    }
                 }, 1000)
+                this.mouseMovedTimeout = mouseMovedTimeout
             }
         }
     }
