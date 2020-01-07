@@ -7,11 +7,11 @@
 				@mouseenter="overlaysHovered = true"
 				@mouseleave="overlaysHovered = false"
 			>
-				<div class="module module-draw">
+				<div class="module module-draw" @mouseleave="showColorPicker = false">
 					<div class="title">Draw</div>
 					<div class="split"></div>
 					<div class="top-row">
-						<div class="drawing-control draw">
+						<div class="drawing-control draw active">
 							<i class="lni-pencil"></i>
 						</div>
 						<div class="drawing-control erase">
@@ -23,13 +23,14 @@
 						<div class="color recent"></div>
 						<div class="color recent"></div>
 						<div class="color recent"></div>
-						<div class="custom">
+						<div class="custom" @click="showColorPicker = !showColorPicker">
 							<i class="lni-color-pallet"></i>
 						</div>
+						<chrome-color-picker v-if="showColorPicker && overlaysHovered" class="color-picker" :value="strokeColor" @input="updateStrokeColor"></chrome-color-picker>
 					</div>
 					<div class="split"></div>
 					<div class="stroke-preview">
-						<div class="stroke"></div>
+						<div class="stroke" id="stroke" :style="{backgroundColor: strokeColor}"></div>
 						<input type="text" class="color-code" value="#000000" />
 					</div>
 				</div>
@@ -157,6 +158,11 @@
 							color: white;
 							background-color: #02976c;
 						}
+
+						&.active {
+							color: white;
+							background-color: #02976c;
+						}
 					}
 				}
 
@@ -167,13 +173,18 @@
 						flex-shrink: 0;
 						width: 20px;
 						height: 20px;
-						background-color: blue;
+						background-color: rgb(0, 0, 0);
 						cursor: pointer;
 					}
 
 					.custom {
 						cursor: pointer;
 						font-size: 20px;
+					}
+
+					.color-picker {
+						position: absolute;
+						left: 100%;
 					}
 				}
 
@@ -185,7 +196,7 @@
 					.stroke {
 						width: 80%;
 						height: 2px;
-						background-color: blue;
+						background-color: rgb(0, 0, 0);
 					}
 
 					.color-code {
@@ -332,10 +343,18 @@
 import io from "socket.io-client";
 import paper from "paper";
 import draggable from "vuedraggable";
+import { Chrome } from "vue-color"
+
+const paths = {}
+let timeOut = null;
+
+let strokeColor = '#418225'
+let strokeWidth = 5
 
 export default {
 	components: {
-		draggable
+		draggable,
+		'chrome-color-picker': Chrome
 	},
 	data() {
 		return {
@@ -343,6 +362,10 @@ export default {
 			overlaysHovered: false,
 			mouseMovedTimeout: null,
 			manualTimeout: false,
+			strokeColor: '#418225',
+			showColorPicker: false,
+			paths: {},
+			paper: null,
 			layers: [
 				{
 					name: "Layer one"
@@ -369,18 +392,19 @@ export default {
 			mousePosition: {
 				x: 0,
 				y: 0
-			}
+			},
 		};
 	},
 	mounted() {
+		const canvas = document.getElementById("canvas");
+		this.paper = paper.setup(canvas);
+
 		let socket = io.connect("localhost:3000");
-
-		let paths = {};
-		let timeOut = null;
-
+		
 		function handleMouseDown(event, id) {
 			paths[id] = new paper.Path();
-			paths[id].strokeColor = "black";
+			paths[id].strokeColor = strokeColor;
+			paths[id].strokeWidth = 5;
 		}
 		function handleMouseDrag(event, id) {
 			if (paths[id]) {
@@ -406,37 +430,31 @@ export default {
 			}, 50);
 		}
 
-		var canvas = document.getElementById("canvas");
-		paper.setup(canvas);
+		const currentTool = new paper.Tool()
 
-		const tool = new paper.Tool();
-		tool.minDistance = 5;
+		currentTool.minDistance = 5;
 
-		tool.onKeyDown = function(event) {
+		currentTool.onKeyDown = function(event) {
 			if (event.key == "right") {
-				paper.view.center = paper.view.center - 500;
+				this.paper.view.center = this.paper.view.center - 500;
 			}
 		};
 
-		tool.onMouseDown = function(event) {
+		currentTool.onMouseDown = function(event) {
+			console.log(this)
 			sendDataSlowly();
 			handleMouseDown(event, "me");
 		};
 
-		tool.onMouseDrag = function(event) {
+
+		currentTool.onMouseDrag = function(event) {
 			handleMouseDrag(event, "me");
 		};
 
-		tool.onMouseUp = function(event) {
+		currentTool.onMouseUp = function(event) {
 			handleMouseUp(event, "me");
 			sendDataInstantly();
 		};
-
-		// const zoomTool = new paper.Tool();
-		// zoomTool.onMouseDrag = function(event) {
-		// 	var offset = event.downPoint - event.point;
-		// 	paper.view.center = paper.view.center + offset;
-		// };
 
 		socket.on("get_full_drawing", data => {
 			if (!paths[data.id]) {
@@ -488,10 +506,10 @@ export default {
 			);
 			// console.log(point);
 			// console.log(paper.view.translate);
-			if (e.deltaY > 0 && paper.view.zoom > 0.5) {
-				paper.view.scale(0.9, point);
-			} else if (e.deltaY < 0 && paper.view.zoom < 2) {
-				paper.view.scale(1.1, point);
+			if (e.deltaY > 0 && this.paper.view.zoom > 0.5) {
+				this.paper.view.scale(0.9, point);
+			} else if (e.deltaY < 0 && this.paper.view.zoom < 2) {
+				this.paper.view.scale(1.1, point);
 			}
 		});
 	},
@@ -515,7 +533,12 @@ export default {
 				}, 1000);
 				this.mouseMovedTimeout = mouseMovedTimeout;
 			}
-		}
+		},
+		updateStrokeColor(value) {
+			// console.log(value)
+			strokeColor = value.hex8
+			this.strokeColor = value.hex8
+		},
 	}
 };
 </script>
