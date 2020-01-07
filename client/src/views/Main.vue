@@ -31,7 +31,7 @@
 					<div class="split"></div>
 					<div class="stroke-preview">
 						<div class="stroke" id="stroke" :style="{backgroundColor: strokeColor}"></div>
-						<input type="text" class="color-code" value="#000000" />
+						<input v-model="strokeWidth" type="range" class="stroke-width" min="1" max="50" step="1"/>
 					</div>
 				</div>
 			</div>
@@ -199,19 +199,19 @@
 						background-color: rgb(0, 0, 0);
 					}
 
-					.color-code {
-						margin-top: 10px;
-						border-radius: 5px;
-						outline: none;
-						border: 2px solid #02976d50;
-						padding: 5px;
-						width: 80%;
-						color: #1b2136;
+					// .color-code {
+					// 	margin-top: 10px;
+					// 	border-radius: 5px;
+					// 	outline: none;
+					// 	border: 2px solid #02976d50;
+					// 	padding: 5px;
+					// 	width: 80%;
+					// 	color: #1b2136;
 
-						&:focus {
-							border: 2px solid #02976db0;
-						}
-					}
+					// 	&:focus {
+					// 		border: 2px solid #02976db0;
+					// 	}
+					// }
 				}
 			}
 		}
@@ -362,6 +362,7 @@ export default {
 			overlaysHovered: false,
 			mouseMovedTimeout: null,
 			manualTimeout: false,
+			strokeWidth: 5,
 			strokeColor: '#418225',
 			showColorPicker: false,
 			paths: {},
@@ -404,7 +405,7 @@ export default {
 		function handleMouseDown(event, id) {
 			paths[id] = new paper.Path();
 			paths[id].strokeColor = strokeColor;
-			paths[id].strokeWidth = 5;
+			paths[id].strokeWidth = strokeWidth;
 		}
 		function handleMouseDrag(event, id) {
 			if (paths[id]) {
@@ -441,7 +442,6 @@ export default {
 		};
 
 		currentTool.onMouseDown = function(event) {
-			console.log(this)
 			sendDataSlowly();
 			handleMouseDown(event, "me");
 		};
@@ -513,6 +513,11 @@ export default {
 			}
 		});
 	},
+	watch: {
+		strokeWidth(value) {
+			strokeWidth = value
+		}
+	},
 	methods: {
 		handleMouseMove(e) {
 			this.mousePosition.x = e.clientX;
@@ -538,7 +543,7 @@ export default {
 			// console.log(value)
 			strokeColor = value.hex8
 			this.strokeColor = value.hex8
-		},
+		}
 	}
 };
 </script>
