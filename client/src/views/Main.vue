@@ -72,6 +72,7 @@
 							</div>
 							<div class="name" @dblclick="layer.data.edittingName = true, $forceUpdate()">
 								<input
+									@click.stop
 									v-if="layer.data.edittingName"
 									@blur="layer.data.edittingName = false, $forceUpdate()"
 									@keypress.enter="layer.data.edittingName = false, $forceUpdate()"
@@ -273,12 +274,12 @@
 
 		&:hover {
 			height: 400px;
-			width: 320px;
+			width: 360px;
 		}
 
 		&.active {
 			min-height: 400px;
-			min-width: 320px;
+			min-width: 360px;
 		}
 
 		.title {
@@ -322,7 +323,7 @@
 				border: 1px solid #02976d21;
 				margin-bottom: 5px;
 				border-radius: 5px;
-				width: 240px;
+				width: 100%;
 
 				&.ghost {
 					background-color: #dfdfdf;
@@ -361,7 +362,7 @@
 
 				.name {
 					flex-shrink: 0;
-					width: 120px;
+					width: 160px;
 					text-align: left;
 
 					span {
@@ -376,7 +377,7 @@
 						// transform: translateY(5px);
 						// position: absolute;
 						padding: 5px 10px;
-						width: 90px;
+						width: 130px;
 						font-size: 16px;
 						border: 1px solid #c0c0c0;
 						outline: none;
@@ -607,6 +608,7 @@ export default {
 		}, 1000);
 
 		window.addEventListener("wheel", e => {
+			if (this.overlaysHovered) return
 			const point = new paper.Point(
 				this.mousePosition.x,
 				this.mousePosition.y
