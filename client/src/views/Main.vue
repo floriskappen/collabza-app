@@ -47,14 +47,20 @@
 				<div class="split"></div>
 				<div class="layers">
 					<draggable v-model="layers" handle=".handle" ghostClass="ghost" @end="handleLayerOrderChange">
-						<div class="layer" v-for="(layer, index) in layers" :key="index">
-							<div class="option dropdown" @click="layer.data.open = !layer.data.open, $forceUpdate()">
+						<div
+							class="layer"
+							v-for="(layer, index) in layers"
+							:key="index"
+							@click="selectLayer(layer)"
+							:class="{'selected': layer.data.selected}"
+						>
+							<div class="option dropdown" @click.stop="layer.data.open = !layer.data.open, $forceUpdate()">
 								<i class="lni-chevron-right" v-if="!layer.data.open"></i>
 								<i class="lni-chevron-down" v-else></i>
 							</div>
 							<div
-								class="option icon"
-								@click="layer.activate()"
+								class="option select"
+								@click.stop="layer.activate(), $forceUpdate()"
 								:class="{ 'active': paper.project.activeLayer.id === layer.id}"
 							>
 								<i class="lni-check-mark-circle"></i>
@@ -71,12 +77,12 @@
 							<div 
 								class="option lock"
 								:class="{ 'active': layer.locked}"
-								@click="layer.locked = !layer.locked, $forceUpdate()"
+								@click.stop="layer.locked = !layer.locked, $forceUpdate()"
 							>
 								<i class="lni-unlock" v-if="!layer.locked"></i>
 								<i class="lni-lock" v-else></i>
 							</div>
-							<div class="option visibility" @click="layer.visible = !layer.visible, $forceUpdate()">
+							<div class="option visibility" @click.stop="layer.visible = !layer.visible, $forceUpdate()">
 								<i class="lni-eye" v-if="layer.visible"></i>
 								<i class="lni-close" v-else></i>
 							</div>
@@ -99,7 +105,7 @@
 					</div>
 
 					<!-- Remove layer -->
-					<div class="icon remove">
+					<div class="icon remove" @click="removeSelectedLayers()" :class="{'active': layersAreSelected}">
 						<i class="lni-trash"></i>
 					</div>
 				</div>
@@ -291,6 +297,10 @@
 					background-color: #0000000a;
 				}
 
+				&.selected {
+					background-color: #00000015;
+				}
+
 				.option {
 					width: 25px;
 					height: 30px;
@@ -305,8 +315,8 @@
 						color: #22cf9e;
 					}
 
-					&.icon, &.lock {
-						color: #d1d1d1;
+					&.select, &.lock {
+						color: #bdbdbd;
 					}
 
 					&.active {
@@ -316,7 +326,7 @@
 
 				.name {
 					flex-shrink: 0;
-					width: 190px;
+					width: 180px;
 					text-align: left;
 
 					span {
@@ -331,7 +341,7 @@
 						// transform: translateY(5px);
 						position: absolute;
 						padding: 5px 10px;
-						width: 160px;
+						width: 150px;
 						font-size: 16px;
 						border: 1px solid #c0c0c0;
 						outline: none;
@@ -364,6 +374,25 @@
 				&:hover {
 					color: white;
 					background-color: #02976c;
+				}
+
+				&.remove {
+					color: #b1b1b1;
+					cursor: default;
+
+					&:hover {
+						background-color: white;
+					}
+
+					&.active {
+						color: black;
+						cursor: pointer;
+						
+						&:hover { 
+							color: white;
+							background-color: #02976c;
+						}
+					}
 				}
 			}
 		}
@@ -414,9 +443,8 @@ export default {
 			manualTimeout: false,
 			showColorPicker: false,
 
-			layers: [
-
-			],
+			layersAreSelected: false,
+			layers: [],
 
 			mousePosition: {
 				x: 0,
@@ -541,8 +569,6 @@ export default {
 				this.mousePosition.x,
 				this.mousePosition.y
 			);
-			// console.log(point);
-			// console.log(paper.view.translate);
 			if (e.deltaY > 0 && this.paper.view.zoom > 0.5) {
 				this.paper.view.scale(0.9, point);
 			} else if (e.deltaY < 0 && this.paper.view.zoom < 2) {
@@ -555,7 +581,8 @@ export default {
 			this.layers[index].data = {
 				name: `Layer ${index + 1}`,
 				edittingName: false,
-				open: false
+				open: false,
+				selected: false
 			}
 		}
 
@@ -587,6 +614,23 @@ export default {
 
 				this.$forceUpdate()
 			}
+		},
+		selectedLayers(value) {
+			if (value.length) {
+				this.layersAreSelected = true
+			} else {
+				this.layersAreSelected = false
+			}
+		}
+	},
+	computed: {
+		areLayersSelected() {
+			this.layers.forEach(layer => {
+				if (layer.data.selected) {
+					return true
+				}
+			})
+			return false
 		}
 	},
 	methods: {
@@ -607,7 +651,6 @@ export default {
 						this.mouseMovedTimeout = mouseMovedTimeout;
 					}
 
-					console.log(this.paper.project.layers)
 				}, 1000);
 				this.mouseMovedTimeout = mouseMovedTimeout;
 			}
@@ -634,9 +677,6 @@ export default {
 			} else {
 				this.layers[e.newIndex].bringToFront()
 			}
-			this.layers.forEach((layer) => {
-				console.log(layer.data.name, layer._index)
-			})
 		},
 		createNewLayer() {
 			this.layers.unshift(new paper.Layer())
@@ -646,11 +686,60 @@ export default {
 			layer.bringToFront()
 			layer.data = {
 				name: `Layer ${layer._id}`,
-				edittingName: true,
-				open: false
+				edittingName: false,
+				open: false,
+				selected: false
 			}
+			console.log(this.layers)
 
 			this.$forceUpdate()
+		},
+		selectLayer(layer) {
+			if (layer.data.selected) {
+				layer.data.selected = false
+				let isAnyLayerStillSelected = false
+				this.layers.forEach(layer => {
+					if (layer.data.selected) {
+						isAnyLayerStillSelected = true
+					}
+				})
+				if (!isAnyLayerStillSelected) this.layersAreSelected = false
+				this.$forceUpdate()
+				return
+			}
+
+			layer.data.selected = true
+			this.layersAreSelected = true
+			this.$forceUpdate()
+		},
+		removeSelectedLayers() {
+			if (!this.layersAreSelected) return
+
+			let indexToRemove = []
+			// this.layers.forEach((layer, index) => {
+			// 	console.log(layer._id)
+				// if (layer.data.selected && !layer.locked) {
+				// 	layer.remove()
+				// 	this.layers.splice(index, 1)
+				// 	hasRemoved = true
+				// }
+			// })
+
+			for (let i = 0; i < this.layers.length; i++) {
+				const layer = this.layers[i]
+				console.log(layer._id)
+				if (layer.data.selected && !layer.locked) {
+					layer.remove()
+					indexToRemove.push(i)
+				}
+			}
+
+			if (indexToRemove.length) {
+				this.layers = this.layers.filter((value, index) => {
+					return indexToRemove.indexOf(index) == -1
+				})
+				this.$forceUpdate()
+			}
 		}
 	},
 	directives: {
