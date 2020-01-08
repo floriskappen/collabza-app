@@ -781,26 +781,25 @@ export default {
 						console.log(item.segments.length, otherHalf.segments.length)
 
 					} else {
-
 						console.log(item.segments.length)
 					}
 				}
 
-				if (item.segments.length > 2) {
+				console.log(item.length, item.segments.length, item)
+
+				if (item.length > 100) {
 					item.removeSegment(item.segments.length - 1)
-					// item.segments.splice(item.segments.length)
 					if (item.segments[item.segments.length - 1]) {
 						item.segments[item.segments.length - 1].remove()
 						item.segments.slice(item.segments.length - 1, 1)
 					}
-					// console.log(item.segments[item.segments.length - 1])
 				} else {
+					console.log('hey')
 					item.removeSegments()
 					item.remove()
 				}
 			}
 
-			// console.log(paper.project.activeLayer.getItems())
 		}
 		eraseTool.onMouseUp = function(event) {
 			eraser.remove()
