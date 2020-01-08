@@ -47,18 +47,32 @@
 				<div class="split"></div>
 				<div class="layers">
 					<draggable v-model="layers" handle=".handle" ghostClass="ghost" @end="handleLayerOrderChange">
-						<div class="layer" v-for="(layer, index) in layers" :key="index" @click="paper.project.layers[layer._index].activate()">
-							<div class="option visibility">
-								<i class="lni-close"></i>
+						<div class="layer" v-for="(layer, index) in layers" :key="index">
+							<div class="option dropdown" @click="layer.data.open = !layer.data.open, $forceUpdate()">
+								<i class="lni-chevron-right" v-if="!layer.data.open"></i>
+								<i class="lni-chevron-down" v-else></i>
 							</div>
-							<div class="option dropdown">
-								<i class="lni-chevron-right"></i>
-							</div>
-							<div class="option icon" v-if="paper.project.activeLayer.id === layer.id">
-								<i class="lni-layers"></i>
+							<div
+								class="option icon"
+								@click="layer.activate()"
+								:class="{ 'active': paper.project.activeLayer.id === layer.id}"
+							>
+								<i class="lni-check-mark-circle"></i>
 							</div>
 							<div class="name">
 								<span>{{layer.data.name}}</span>
+							</div>
+							<div 
+								class="option lock"
+								:class="{ 'active': layer.locked}"
+								@click="layer.locked = !layer.locked, $forceUpdate()"
+							>
+								<i class="lni-unlock" v-if="!layer.locked"></i>
+								<i class="lni-lock" v-else></i>
+							</div>
+							<div class="option visibility" @click="layer.visible = !layer.visible, $forceUpdate()">
+								<i class="lni-eye" v-if="layer.visible"></i>
+								<i class="lni-close" v-else></i>
 							</div>
 							<div class="option drag handle">
 								<i class="lni-hand"></i>
@@ -272,7 +286,7 @@
 				}
 
 				.option {
-					width: 30px;
+					width: 25px;
 					height: 30px;
 					flex-shrink: 0;
 					display: flex;
@@ -282,6 +296,14 @@
 					transition: color 0.2s;
 
 					&:hover {
+						color: #22cf9e;
+					}
+
+					&.icon, &.lock {
+						color: #d1d1d1;
+					}
+
+					&.active {
 						color: #22cf9e;
 					}
 				}
@@ -431,16 +453,25 @@ export default {
 		};
 
 		currentTool.onMouseDown = function(event) {
+			if (paper.project.activeLayer.locked) {
+				return
+			}
 			sendDataSlowly();
 			handleMouseDown(event, "me");
 		};
 
 
 		currentTool.onMouseDrag = function(event) {
+			if (paper.project.activeLayer.locked) {
+				return
+			}
 			handleMouseDrag(event, "me");
 		};
 
 		currentTool.onMouseUp = function(event) {
+			if (paper.project.activeLayer.locked) {
+				return
+			}
 			handleMouseUp(event, "me");
 			sendDataInstantly();
 		};
@@ -502,13 +533,13 @@ export default {
 			}
 		});
 
-		this.layers.push(new paper.Layer())
-		this.layers.push(new paper.Layer())
-		this.layers.push(new paper.Layer())
-
-		this.layers[0].data.name = "Layer 1"
-		this.layers[1].data.name = "Layer 2"
-		this.layers[2].data.name = "Layer 3"
+		for (let index = 0; index < 3; index++) {
+			this.layers.push(new paper.Layer())
+			this.layers[index].data = {
+				name: `Layer ${index + 1}`,
+				open: false
+			}
+		}
 
 		this.layers[0].bringToFront()
 		this.layers[2].sendToBack()
@@ -548,6 +579,8 @@ export default {
 					} else {
 						this.mouseMovedTimeout = mouseMovedTimeout;
 					}
+
+					console.log(this.paper.project.layers)
 				}, 1000);
 				this.mouseMovedTimeout = mouseMovedTimeout;
 			}
@@ -566,13 +599,6 @@ export default {
 			}
 		},
 		handleLayerOrderChange(e) {
-			// console.log(e)
-			// console.log(`Layer old index: ${this.paper.project.activeLayer._index}`)
-			// this.layers[e.newIndex]._index = e.newIndex
-			// this.layers[e.newIndex].activate()
-			// console.log(`Layer old ID: ${this.paper.project.activeLayer._index}`)
-			// this.layers[e.newIndex].id = e.newIndex + 1
-			// console.log(`Layer changed ID: ${this.paper.project.activeLayer._index}`)
 			const reversedLayers = this.layers.slice().reverse()
 			if (e.newIndex >= this.layers.length - 1) {
 				this.layers[e.newIndex].sendToBack()
