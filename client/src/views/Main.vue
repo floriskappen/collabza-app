@@ -40,7 +40,9 @@
 					</div>
 					<div class="split"></div>
 					<div class="stroke-preview">
-						<div class="stroke" id="stroke" :style="{'background-color': strokeColor, 'height': strokeWidth}"></div>
+						<div class="stroke-wrapper">
+							<div class="stroke" id="stroke" :style="{'background-color': strokeColor, 'height': `${strokeWidth}px`}"></div>
+						</div>
 						<vue-slider v-model="strokeWidth" class="stroke-width" :min="1" :max="50" width="120px" :interval="1" ></vue-slider>
 					</div>
 				</div>
@@ -206,7 +208,7 @@
 
 	.modules-wrapper {
 		width: 150px;
-		height: 90vh;
+		height: fit-content;
 		margin-left: 5vh;
 		margin-top: 10vh;
 		position: fixed;
@@ -219,7 +221,7 @@
 			border-radius: 5px;
 			padding: 10px 20px;
 			transition: height 0.2s;
-			height: 30px;
+			height: 84px;
 			
 			overflow: hidden;
 
@@ -228,10 +230,6 @@
 				height: 0px;
 				border-bottom: 1px solid rgba(0, 0, 0, 0.062);
 				margin: 10px 0px;
-			}
-
-			&:hover {
-				height: 200px;
 			}
 
 			.title {
@@ -254,9 +252,14 @@
 			}
 
 			&.module-draw {
-				&.active {
-					height: 200px;
+				&:hover {
+					height: 250px;
 				}
+
+				&.active {
+					height: 250px;
+				}
+
 
 				.top-row {
 					display: flex;
@@ -294,6 +297,7 @@
 						height: 20px;
 						background-color: rgb(0, 0, 0);
 						cursor: pointer;
+						border-radius: 15px;
 					}
 
 					.custom {
@@ -312,10 +316,17 @@
 					display: flex;
 					align-items: center;
 					flex-direction: column;
-					.stroke {
-						width: 80%;
-						height: 2px;
-						background-color: rgb(0, 0, 0);
+					.stroke-wrapper {
+						width: 100%;
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						height: 50px;
+						.stroke {
+							width: 80%;
+							height: 5px;
+							background-color: rgb(0, 0, 0);
+						}
 					}
 					.stroke-width {
 						margin-top: 20px;
@@ -619,7 +630,7 @@ const paths = {}
 let timeOut = null;
 
 let strokeColor = '#418225'
-let strokeWidth = 5
+let strokeWidth = 15
 
 export default {
 	components: {
@@ -631,7 +642,7 @@ export default {
 		return {
 			paper: null,
 
-			strokeWidth: 5,
+			strokeWidth: 15,
 			strokeColor: '#02976c',
 			strokeColorToUpdateTo: '#000000',
 			recentColors: [
@@ -667,26 +678,33 @@ export default {
 
 		const socket = io.connect("localhost:3000");
 		
+		let currentActivePathID = null
 		function handleMouseDown(event, id) {
-			paths[id] = new paper.Path();
-			paths[id].data = {
-				name: `Path ${paper.project.activeLayer.children.length}`
+			const path = new paper.Path();
+			path.data = {
+				name: `Path ${paper.project.activeLayer.children.length}`,
+				owner: 'me'
 			}
 			// paths[id].onMouseDrag = function(event) {
 			// 	const point = event.nearestPoint
 
 			// }
-			paths[id].strokeColor = strokeColor;
-			paths[id].strokeWidth = strokeWidth;
+			path.strokeColor = strokeColor;
+			path.strokeWidth = strokeWidth;
+
+			currentActivePathID = path.id
+			paper.project.activeLayer.addChild(path)
 		}
 		function handleMouseDrag(event, id) {
-			if (paths[id]) {
-				paths[id].add(event.point);
-				paths[id].smooth(100);
+			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
+			if (path) {
+				path.add(event.point);
+				path.smooth(100);
 			}
 		}
 		function handleMouseUp(event, id) {
-			paths[id].simplify(10);
+			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
+			path.simplify(0.5);
 		}
 
 		function sendDataInstantly() {
@@ -714,7 +732,7 @@ export default {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
-			sendDataSlowly();
+			// sendDataSlowly();
 			handleMouseDown(event, "me");
 		};
 		drawingTool.onMouseDrag = function(event) {
@@ -728,7 +746,7 @@ export default {
 				return
 			}
 			handleMouseUp(event, "me");
-			sendDataInstantly();
+			// sendDataInstantly();
 		};
 
 		const eraseTool = new paper.Tool()
@@ -749,20 +767,37 @@ export default {
 			eraser.position = event.point
 
 			if (event.item) {
-				const item = event.item
+				const item = paper.project.activeLayer.getItem({id: event.item.id})
+				if (!item) return
 				const nearestLocation = item.getNearestLocation(event.point)
-				if (item.segments.length === 1) {
-					item.segments[0].remove()
-					return
+				if (nearestLocation) {
+					const otherHalf = item.splitAt(nearestLocation.offset)
+					if (otherHalf) {
+						otherHalf.removeSegment(0)
+
+						if (otherHalf.segments.length < 2) {
+							otherHalf.remove()
+						}
+						console.log(item.segments.length, otherHalf.segments.length)
+
+					} else {
+
+						console.log(item.segments.length)
+					}
 				}
-				const segment = item.segments[nearestLocation.index]
-				// segment.selected = true
-				item.splitAt(nearestLocation.offset)
-				item.lastSegment.remove()
-				if (item.segments.length < 3) {
+
+				if (item.segments.length > 2) {
+					item.removeSegment(item.segments.length - 1)
+					// item.segments.splice(item.segments.length)
+					if (item.segments[item.segments.length - 1]) {
+						item.segments[item.segments.length - 1].remove()
+						item.segments.slice(item.segments.length - 1, 1)
+					}
+					// console.log(item.segments[item.segments.length - 1])
+				} else {
+					item.removeSegments()
 					item.remove()
 				}
-				// console.log(item.segments.length, segmentToFindIndex)
 			}
 
 			// console.log(paper.project.activeLayer.getItems())
