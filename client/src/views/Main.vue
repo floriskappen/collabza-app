@@ -13,10 +13,18 @@
 					</div>
 					<div class="split"></div>
 					<div class="top-row">
-						<div class="drawing-control draw active">
+						<div 
+							class="drawing-control draw"
+							@click="tools[0].activate(), currentTool = 0"
+							:class="{'active': currentTool === 0}"
+						>
 							<i class="lni-pencil"></i>
 						</div>
-						<div class="drawing-control erase">
+						<div 
+							class="drawing-control erase"
+							@click="tools[1].activate(), currentTool = 1"
+							:class="{'active': currentTool === 1}"
+						>
 							<i class="lni-eraser"></i>
 						</div>
 					</div>
@@ -56,44 +64,105 @@
 							class="layer"
 							v-for="(layer, index) in layers"
 							:key="index"
-							@click="selectLayer(layer)"
-							:class="{'selected': layer.data.selected}"
+							:class="{'selected': layer.data.selected, 'open': layer.data.open}"
 						>
-							<div class="option dropdown" @click.stop="layer.data.open = !layer.data.open, $forceUpdate()">
-								<i class="lni-chevron-right" v-if="!layer.data.open"></i>
-								<i class="lni-chevron-down" v-else></i>
-							</div>
-							<div
-								class="option select"
-								@click.stop="layer.activate(), $forceUpdate()"
-								:class="{ 'active': paper.project.activeLayer.id === layer.id}"
-							>
-								<i class="lni-check-mark-circle"></i>
-							</div>
-							<div class="name" @dblclick="layer.data.edittingName = true, $forceUpdate()">
-								<input
-									@click.stop
-									v-if="layer.data.edittingName"
-									@blur="layer.data.edittingName = false, $forceUpdate()"
-									@keypress.enter="layer.data.edittingName = false, $forceUpdate()"
-									v-model="layer.data.name" type="text"
+							<div class="layer-controls" @click="selectLayer(layer)">
+								<div class="option dropdown" @click.stop="layer.data.open = !layer.data.open, $forceUpdate()">
+									<i class="lni-chevron-right" v-if="!layer.data.open"></i>
+									<i class="lni-chevron-down" v-else></i>
+								</div>
+								<div
+									class="option select"
+									@click.stop="layer.activate(), $forceUpdate()"
+									:class="{ 'active': paper.project.activeLayer.id === layer.id}"
 								>
-								<span v-else>{{layer.data.name}}</span>
+									<i class="lni-check-mark-circle"></i>
+								</div>
+								<div class="name" @dblclick="layer.data.edittingName = true, $forceUpdate()">
+									<input
+										@click.stop
+										v-if="layer.data.edittingName"
+										@blur="layer.data.edittingName = false, $forceUpdate()"
+										@keypress.enter="layer.data.edittingName = false, $forceUpdate()"
+										v-model="layer.data.name" type="text"
+									>
+									<span v-else>{{layer.data.name}}</span>
+								</div>
+								<div 
+									class="option lock"
+									:class="{ 'active': layer.locked}"
+									@click.stop="layer.locked = !layer.locked, $forceUpdate()"
+								>
+									<i class="lni-unlock" v-if="!layer.locked"></i>
+									<i class="lni-lock" v-else></i>
+								</div>
+								<div class="option visibility" @click.stop="layer.visible = !layer.visible, $forceUpdate()">
+									<i class="lni-eye" v-if="layer.visible"></i>
+									<i class="lni-close" v-else></i>
+								</div>
+								<div class="option drag handle">
+									<i class="lni-hand"></i>
+								</div>
 							</div>
-							<div 
-								class="option lock"
-								:class="{ 'active': layer.locked}"
-								@click.stop="layer.locked = !layer.locked, $forceUpdate()"
-							>
-								<i class="lni-unlock" v-if="!layer.locked"></i>
-								<i class="lni-lock" v-else></i>
-							</div>
-							<div class="option visibility" @click.stop="layer.visible = !layer.visible, $forceUpdate()">
-								<i class="lni-eye" v-if="layer.visible"></i>
-								<i class="lni-close" v-else></i>
-							</div>
-							<div class="option drag handle">
-								<i class="lni-hand"></i>
+							<div class="layer-children">
+								<div class="children-filters">
+									<div 
+										class="filter all"
+										:class="{'active': !layer.data.filter}"
+										@click="layer.data.filter = false, $forceUpdate()"
+									>
+										<i class="lni-ban"></i>
+									</div>
+									<div 
+										class="filter path"
+										:class="{'active': layer.data.filter === 'path'}"
+										@click="layer.data.filter = 'path', $forceUpdate()"
+									>
+										<i class="lni-brush-alt"></i>
+									</div>
+									<div 
+										class="filter shape"
+										:class="{'active': layer.data.filter === 'shape'}"
+										@click="layer.data.filter = 'shape', $forceUpdate()"
+									>
+										<i class="lni-stop"></i>
+									</div>
+									<div 
+										class="filter text"
+										:class="{'active': layer.data.filter === 'text'}"
+										@click="layer.data.filter = 'text', $forceUpdate()"
+									>
+										<i class="lni-text-format"></i>
+									</div>
+									<div 
+										class="filter raster"
+										:class="{'active': layer.data.filter === 'raster'}"
+										@click="layer.data.filter = 'raster', $forceUpdate()"
+									>
+										<i class="lni-image"></i>
+									</div>
+								</div>
+								<div class="children">
+									<div class="child" v-for="(child, index) in getLayerChildren(layer)" :key="index">
+										<div class="option type">
+											<i class="lni-brush-alt"></i>
+										</div>
+										<div class="name">{{child.data.name}}</div>
+										<div class="option lock" :class="{'active': child.locked}" @click="child.locked = !child.locked, $forceUpdate()">
+											<i class="lni-unlock" v-if="!child.locked"></i>
+											<i class="lni-lock" v-else></i>
+										</div>
+										<div class="option visibility" :class="{'active': child.visible}" @click="hideChildLayer(child)">
+											<i class="lni-eye"></i>
+										</div>
+										<div class="option remove" @click="removeChildLayer(child)">
+											<i class="lni-close"></i>
+										</div>
+									</div>
+									<div class="no-children" v-if="!getLayerChildren(layer).length">
+										Nothing to show
+									</div>
+								</div>
 							</div>
 						</div>
 					</draggable>
@@ -317,17 +386,14 @@
 			overflow: auto;
 
 			.layer {
-				display: flex;
 				padding: 0px 10px;
 				transition: background-color 0.2s;
+				width: 280px;
+				height: 30px;
 				border: 1px solid #02976d21;
 				margin-bottom: 5px;
 				border-radius: 5px;
-				width: 100%;
-
-				&.ghost {
-					background-color: #dfdfdf;
-				}
+				overflow: hidden;
 
 				&:hover {
 					background-color: #0000000a;
@@ -337,51 +403,148 @@
 					background-color: #00000015;
 				}
 
-				.option {
-					width: 25px;
-					height: 30px;
-					flex-shrink: 0;
+				&.ghost {
+					background-color: #dfdfdf;
+				}
+
+				&.open {
+					height: fit-content;
+				}
+
+				.layer-controls {
 					display: flex;
-					align-items: center;
-					cursor: pointer;
-
-					transition: color 0.2s;
-
-					&:hover {
-						color: #22cf9e;
+	
+					.option {
+						width: 25px;
+						height: 30px;
+						flex-shrink: 0;
+						display: flex;
+						align-items: center;
+						cursor: pointer;
+	
+						transition: color 0.2s;
+	
+						&:hover {
+							color: #22cf9e;
+						}
+	
+						&.select, &.lock {
+							color: #bdbdbd;
+						}
+	
+						&.active {
+							color: black;
+						}
 					}
-
-					&.select, &.lock {
-						color: #bdbdbd;
-					}
-
-					&.active {
-						color: black;
+	
+					.name {
+						flex-shrink: 0;
+						width: 160px;
+						text-align: left;
+	
+						span {
+							transform: translateY(7px);
+							width: 100%;
+							white-space: nowrap;
+							overflow: hidden;
+							text-overflow: ellipsis;
+						}
+	
+						input {
+							// transform: translateY(5px);
+							// position: absolute;
+							padding: 5px 10px;
+							width: 130px;
+							font-size: 16px;
+							border: 1px solid #c0c0c0;
+							outline: none;
+							border-radius: 5px;
+						}
 					}
 				}
 
-				.name {
-					flex-shrink: 0;
-					width: 160px;
-					text-align: left;
-
-					span {
-						transform: translateY(7px);
-						width: 100%;
-						white-space: nowrap;
-						overflow: hidden;
-						text-overflow: ellipsis;
-					}
-
-					input {
-						// transform: translateY(5px);
-						// position: absolute;
+				.layer-children {
+					margin: 10px 0px 5px 0px;
+					background-color: white;
+					border-radius: 5px;
+					border: 1px solid #02976d21;
+					.children-filters {
+						display: flex;
+						justify-content: space-between;
 						padding: 5px 10px;
-						width: 130px;
-						font-size: 16px;
-						border: 1px solid #c0c0c0;
-						outline: none;
-						border-radius: 5px;
+						
+						.filter {
+							width: 35px;
+							height: 35px;
+							display: flex;
+							justify-content: center;
+							align-items: center;
+							cursor: pointer;
+							color: #b1b1b1;
+							border-radius: 5px;
+							transition: color .2s, background-color .2s;
+							
+							&:hover {
+								background-color: #02976c;
+								color: white;
+							}
+
+							&.active {
+								background-color: white;
+								color: black;
+								cursor: default;
+							}
+						}
+					}
+					.children {
+						margin-top: 10px;
+
+						.child {
+							padding: 0px 10px 0px 20px;
+							display: flex;
+							align-items: center;
+
+							.name {
+								text-align: left;
+								width: 100%;
+							}
+
+							.option {
+								width: 25px;
+								height: 30px;
+								flex-shrink: 0;
+								display: flex;
+								align-items: center;
+								cursor: pointer;
+								transition: color .2s;
+			
+								&.lock, &.visibility {
+									color: #bdbdbd;
+								}
+			
+								&.active {
+									color: black;
+								}
+
+								&:hover {
+									color: #22cf9e;
+								}
+
+								.type {
+									&:hover {
+										color: black;
+									}
+								}
+							}
+						}
+
+						.no-children {
+							text-align: left;
+							margin-left: 20px;
+							margin-bottom: 10px;
+							font-size: 14px;
+							color: #b1b1b1;
+						}
 					}
 				}
 			}
@@ -482,12 +645,15 @@ export default {
 			mouseMovedTimeout: null,
 			manualTimeout: false,
 			showColorPicker: false,
+			currentTool: 0,
 
 			layersComponentPinned: false,
 			drawingModulePinned: false,
 
 			layersAreSelected: false,
 			layers: [],
+
+			tools: [],
 
 			mousePosition: {
 				x: 0,
@@ -499,10 +665,17 @@ export default {
 		const canvas = document.getElementById("canvas");
 		this.paper = paper.setup(canvas);
 
-		let socket = io.connect("localhost:3000");
+		const socket = io.connect("localhost:3000");
 		
 		function handleMouseDown(event, id) {
 			paths[id] = new paper.Path();
+			paths[id].data = {
+				name: `Path ${paper.project.activeLayer.children.length}`
+			}
+			// paths[id].onMouseDrag = function(event) {
+			// 	const point = event.nearestPoint
+
+			// }
 			paths[id].strokeColor = strokeColor;
 			paths[id].strokeWidth = strokeWidth;
 		}
@@ -513,7 +686,7 @@ export default {
 			}
 		}
 		function handleMouseUp(event, id) {
-			paths[id].simplify(0);
+			paths[id].simplify(10);
 		}
 
 		function sendDataInstantly() {
@@ -530,39 +703,78 @@ export default {
 			}, 50);
 		}
 
-		const currentTool = new paper.Tool()
-
-		currentTool.minDistance = 5;
-
-		currentTool.onKeyDown = function(event) {
+		const drawingTool = new paper.Tool()
+		drawingTool.minDistance = 5;
+		drawingTool.onKeyDown = function(event) {
 			if (event.key == "right") {
 				this.paper.view.center = this.paper.view.center - 500;
 			}
 		};
-
-		currentTool.onMouseDown = function(event) {
+		drawingTool.onMouseDown = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
 			sendDataSlowly();
 			handleMouseDown(event, "me");
 		};
-
-
-		currentTool.onMouseDrag = function(event) {
+		drawingTool.onMouseDrag = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
 			handleMouseDrag(event, "me");
 		};
-
-		currentTool.onMouseUp = function(event) {
+		drawingTool.onMouseUp = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
 			handleMouseUp(event, "me");
 			sendDataInstantly();
 		};
+
+		const eraseTool = new paper.Tool()
+		eraseTool.minDistance = 5
+		let eraser = null
+		eraseTool.onMouseDown = function(event) {
+			eraser = new paper.Path.Circle({
+				center: event.point,
+				radius: 10,
+				fillColor: '#f32d2d5b',
+				locked: true,
+				data: {
+					isEraser: true
+				}
+			})
+		}
+		eraseTool.onMouseDrag = function(event) {
+			eraser.position = event.point
+
+			if (event.item) {
+				const item = event.item
+				const nearestLocation = item.getNearestLocation(event.point)
+				if (item.segments.length === 1) {
+					item.segments[0].remove()
+					return
+				}
+				const segment = item.segments[nearestLocation.index]
+				// segment.selected = true
+				item.splitAt(nearestLocation.offset)
+				item.lastSegment.remove()
+				if (item.segments.length < 3) {
+					item.remove()
+				}
+				// console.log(item.segments.length, segmentToFindIndex)
+			}
+
+			// console.log(paper.project.activeLayer.getItems())
+		}
+		eraseTool.onMouseUp = function(event) {
+			eraser.remove()
+		}
+
+		this.tools.push(drawingTool)
+		this.tools.push(eraseTool)
+		this.tools[0].activate()
+		console.log(paper.tool)
 
 		socket.on("get_full_drawing", data => {
 			if (!paths[data.id]) {
@@ -626,7 +838,8 @@ export default {
 				name: `Layer ${index + 1}`,
 				edittingName: false,
 				open: false,
-				selected: false
+				selected: false,
+				filter: false
 			}
 		}
 
@@ -699,11 +912,42 @@ export default {
 				this.mouseMovedTimeout = mouseMovedTimeout;
 			}
 		},
+		getLayerChildren(layer) {
+			if (!layer.data.filter) {
+				return layer.children
+			} else if (layer.data.filter === 'path') {
+				const childrenToReturn = []
+				layer.children.forEach(child => {
+					if (child.className === 'Path') childrenToReturn.push(child)
+				})
+				return childrenToReturn
+			} else if (layer.data.filter === 'shape') {
+				const childrenToReturn = []
+				layer.children.forEach(child => {
+					if (child.className === 'Shape') childrenToReturn.push(child)
+				})
+				return childrenToReturn
+			} else if (layer.data.filter === 'text') {
+				const childrenToReturn = []
+				layer.children.forEach(child => {
+					if (child.className === 'PointText') childrenToReturn.push(child)
+				})
+				return childrenToReturn
+			} else if (layer.data.filter === 'raster') {
+				const childrenToReturn = []
+				layer.children.forEach(child => {
+					if (child.className === 'Raster') childrenToReturn.push(child)
+				})
+				return childrenToReturn
+			} else {
+				return []
+			}
+		},
 		updateStrokeColor(value, isFromRecentColor) {
 			this.strokeColorToUpdateTo = value.hex8
 
 			if (isFromRecentColor) {
-				if (this.strokeColor !== this.strokeColorToUpdateTo) {					
+				if (this.strokeColor !== this.strokeColorToUpdateTo) {
 					this.recentColors[2] = this.recentColors[1]
 					this.recentColors[1] = this.recentColors[0]
 					this.recentColors[0] = this.strokeColor
@@ -713,14 +957,19 @@ export default {
 			}
 		},
 		handleLayerOrderChange(e) {
+			let layerIsActive = false
+			if (this.layers[e.newIndex].id === paper.project.activeLayer.id) layerIsActive = true
+			console.log(this.layers[e.newIndex].id, paper.project.activeLayer.id)
 			const reversedLayers = this.layers.slice().reverse()
 			if (e.newIndex >= this.layers.length - 1) {
-				this.layers[e.newIndex].sendToBack()
+				this.layers[e.newIndex].bringToFront()
 			} else if (e.newIndex > 0) {
 				this.layers[e.newIndex].insertAbove(reversedLayers[e.newIndex - 1])
 			} else {
-				this.layers[e.newIndex].bringToFront()
+				this.layers[e.newIndex].sendToBack()
 			}
+
+			if (layerIsActive) this.layers[e.newIndex].activate()
 		},
 		createNewLayer() {
 			this.layers.unshift(new paper.Layer())
@@ -729,16 +978,18 @@ export default {
 
 			layer.bringToFront()
 			layer.data = {
-				name: `Layer ${layer._id}`,
+				name: `Layer ${paper.project.layers.length}`,
 				edittingName: false,
 				open: false,
-				selected: false
+				selected: false,
+				filter: false
 			}
 			layer.activate()
 
 			this.$forceUpdate()
 		},
 		selectLayer(layer) {
+			console.log(layer)
 			if (layer.data.selected) {
 				layer.data.selected = false
 				let isAnyLayerStillSelected = false
@@ -811,6 +1062,17 @@ export default {
 				if (!lockedSelectedLayers) this.layersAreSelected = false
 				this.$forceUpdate()
 			}
+		},
+		hideChildLayer(child) {
+			if (child.locked) return
+			child.visible = !child.visible
+			this.$forceUpdate()
+
+		},
+		removeChildLayer(child) {
+			if (child.locked) return
+			child.remove()
+			this.$forceUpdate()
 		}
 	},
 	directives: {
