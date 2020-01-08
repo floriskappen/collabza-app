@@ -555,7 +555,7 @@
 									// transform: translateY(5px);
 									// position: absolute;
 									padding: 5px 10px;
-									width: 130px;
+									width: 115px;
 									font-size: 16px;
 									border: 1px solid #c0c0c0;
 									outline: none;
