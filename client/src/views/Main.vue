@@ -20,9 +20,9 @@
 					</div>
 					<div class="split"></div>
 					<div class="bottom-row">
-						<div class="color recent"></div>
-						<div class="color recent"></div>
-						<div class="color recent"></div>
+						<div class="color recent" @click="updateStrokeColor({ hex8: recentColors[2] }, true)" :style="{backgroundColor: recentColors[2]}"></div>
+						<div class="color recent" @click="updateStrokeColor({ hex8: recentColors[1] }, true)" :style="{backgroundColor: recentColors[1]}"></div>
+						<div class="color recent" @click="updateStrokeColor({ hex8: recentColors[0] }, true)" :style="{backgroundColor: recentColors[0]}"></div>
 						<div class="custom" @click="showColorPicker = !showColorPicker">
 							<i class="lni-color-pallet"></i>
 						</div>
@@ -358,15 +358,23 @@ export default {
 	},
 	data() {
 		return {
+			paper: null,
+
+			strokeWidth: 5,
+			strokeColor: '#418225',
+			strokeColorToUpdateTo: '#000000',
+			recentColors: [
+				'blue',
+				'black',
+				'yellow'
+			],
+
 			showOverlays: false,
 			overlaysHovered: false,
 			mouseMovedTimeout: null,
 			manualTimeout: false,
-			strokeWidth: 5,
-			strokeColor: '#418225',
 			showColorPicker: false,
-			paths: {},
-			paper: null,
+
 			layers: [
 				{
 					name: "Layer one"
@@ -390,6 +398,7 @@ export default {
 					name: "Really long layer name"
 				}
 			],
+
 			mousePosition: {
 				x: 0,
 				y: 0
@@ -516,6 +525,17 @@ export default {
 	watch: {
 		strokeWidth(value) {
 			strokeWidth = value
+		},
+		showColorPicker(value) {
+			if (value === false) {
+				if (this.strokeColor !== this.strokeColorToUpdateTo) {					
+					this.recentColors[2] = this.recentColors[1]
+					this.recentColors[1] = this.recentColors[0]
+					this.recentColors[0] = this.strokeColor
+				}
+				this.strokeColor = this.strokeColorToUpdateTo
+				strokeColor = this.strokeColorToUpdateTo
+			}
 		}
 	},
 	methods: {
@@ -539,10 +559,18 @@ export default {
 				this.mouseMovedTimeout = mouseMovedTimeout;
 			}
 		},
-		updateStrokeColor(value) {
-			// console.log(value)
-			strokeColor = value.hex8
-			this.strokeColor = value.hex8
+		updateStrokeColor(value, isFromRecentColor) {
+			this.strokeColorToUpdateTo = value.hex8
+
+			if (isFromRecentColor) {
+				if (this.strokeColor !== this.strokeColorToUpdateTo) {					
+					this.recentColors[2] = this.recentColors[1]
+					this.recentColors[1] = this.recentColors[0]
+					this.recentColors[0] = this.strokeColor
+				}
+				this.strokeColor = this.strokeColorToUpdateTo
+				strokeColor = this.strokeColorToUpdateTo
+			}
 		}
 	}
 };
