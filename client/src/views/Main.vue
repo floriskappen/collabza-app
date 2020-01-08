@@ -145,16 +145,31 @@
 									</div>
 								</div>
 								<div class="children">
-									<div class="child" v-for="(child, index) in getLayerChildren(layer)" :key="index">
+									<div 
+										class="child"
+										v-for="(child, index) in getLayerChildren(layer)"
+										:key="index"
+										@click="child.selected = !child.selected, $forceUpdate()"
+										:class="{'selected': child.selected}"
+									>
 										<div class="option type">
 											<i class="lni-brush-alt"></i>
 										</div>
-										<div class="name">{{child.data.name}}</div>
-										<div class="option lock" :class="{'active': child.locked}" @click="child.locked = !child.locked, $forceUpdate()">
+										<div class="name" @dblclick="child.data.edittingName = true, $forceUpdate()">
+											<input
+												@click.stop
+												v-if="child.data.edittingName"
+												@blur="child.data.edittingName = false, $forceUpdate()"
+												@keypress.enter="child.data.edittingName = false, $forceUpdate()"
+												v-model="child.data.name" type="text"
+											>
+											<span v-else>{{child.data.name}}</span>
+										</div>
+										<div class="option lock" :class="{'active': child.locked}" @click.stop="child.locked = !child.locked, $forceUpdate()">
 											<i class="lni-unlock" v-if="!child.locked"></i>
 											<i class="lni-lock" v-else></i>
 										</div>
-										<div class="option visibility" :class="{'active': child.visible}" @click="hideChildLayer(child)">
+										<div class="option visibility" :class="{'active': child.visible}" @click.stop="hideChildLayer(child)">
 											<i class="lni-eye"></i>
 										</div>
 										<div class="option remove" @click="removeChildLayer(child)">
@@ -515,9 +530,37 @@
 							display: flex;
 							align-items: center;
 
+							&:hover {
+								background-color: #0000000a;
+							}
+
+							&.selected {
+								background-color: #00000015;
+							}
+
 							.name {
+								flex-shrink: 0;
+								width: 145px;
 								text-align: left;
-								width: 100%;
+			
+								span {
+									transform: translateY(3px);
+									width: 100%;
+									white-space: nowrap;
+									overflow: hidden;
+									text-overflow: ellipsis;
+								}
+			
+								input {
+									// transform: translateY(5px);
+									// position: absolute;
+									padding: 5px 10px;
+									width: 130px;
+									font-size: 16px;
+									border: 1px solid #c0c0c0;
+									outline: none;
+									border-radius: 5px;
+								}
 							}
 
 							.option {
@@ -541,7 +584,8 @@
 									color: #22cf9e;
 								}
 
-								.type {
+								&.type {
+									cursor: default;
 									&:hover {
 										color: black;
 									}
