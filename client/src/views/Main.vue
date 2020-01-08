@@ -60,7 +60,13 @@
 								<i class="lni-check-mark-circle"></i>
 							</div>
 							<div class="name">
-								<span>{{layer.data.name}}</span>
+								<input
+									v-if="layer.data.edittingName"
+									@blur="layer.data.edittingName = false, $forceUpdate()"
+									@keypress.enter="layer.data.edittingName = false, $forceUpdate()"
+									v-model="layer.data.name" type="text"
+								>
+								<span v-else @dblclick="layer.data.edittingName = true, $forceUpdate()">{{layer.data.name}}</span>
 							</div>
 							<div 
 								class="option lock"
@@ -83,7 +89,7 @@
 				<div class="split"></div>
 				<div class="bottom-icons">
 					<!-- New layer -->
-					<div class="icon new">
+					<div class="icon new" @click="createNewLayer()">
 						<i class="lni-add-file"></i>
 					</div>
 
@@ -320,6 +326,17 @@
 						overflow: hidden;
 						text-overflow: ellipsis;
 					}
+
+					input {
+						// transform: translateY(5px);
+						position: absolute;
+						padding: 5px 10px;
+						width: 160px;
+						font-size: 16px;
+						border: 1px solid #c0c0c0;
+						outline: none;
+						border-radius: 5px;
+					}
 				}
 			}
 		}
@@ -537,6 +554,7 @@ export default {
 			this.layers.push(new paper.Layer())
 			this.layers[index].data = {
 				name: `Layer ${index + 1}`,
+				edittingName: false,
 				open: false
 			}
 		}
@@ -559,6 +577,15 @@ export default {
 				}
 				this.strokeColor = this.strokeColorToUpdateTo
 				strokeColor = this.strokeColorToUpdateTo
+			}
+		},
+		overlaysHovered(value) {
+			if (value === false) {
+				this.layers.forEach(layer => {
+					layer.data.edittingName = false
+				})
+
+				this.$forceUpdate()
 			}
 		}
 	},
@@ -610,6 +637,27 @@ export default {
 			this.layers.forEach((layer) => {
 				console.log(layer.data.name, layer._index)
 			})
+		},
+		createNewLayer() {
+			this.layers.unshift(new paper.Layer())
+
+			const layer = this.layers[0]
+
+			layer.bringToFront()
+			layer.data = {
+				name: `Layer ${layer._id}`,
+				edittingName: true,
+				open: false
+			}
+
+			this.$forceUpdate()
+		}
+	},
+	directives: {
+		focus: {
+			inserted (el) {
+				el.focus()
+			}
 		}
 	}
 };
