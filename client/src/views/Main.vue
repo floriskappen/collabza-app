@@ -3,12 +3,14 @@
 		<transition name="fade">
 			<div
 				class="modules-wrapper"
-				v-if="showOverlays"
 				@mouseenter="overlaysHovered = true"
 				@mouseleave="overlaysHovered = false"
 			>
-				<div class="module module-draw" @mouseleave="showColorPicker = false">
-					<div class="title">Draw</div>
+				<div class="module module-draw" :class="{'active': drawingModulePinned}" @mouseleave="showColorPicker = false">
+					<div class="title">
+						<span>Drawing</span>
+						<i class="lni-pin-alt" :class="{'active': drawingModulePinned}" @click="drawingModulePinned = !drawingModulePinned"></i>
+					</div>
 					<div class="split"></div>
 					<div class="top-row">
 						<div class="drawing-control draw active">
@@ -30,8 +32,8 @@
 					</div>
 					<div class="split"></div>
 					<div class="stroke-preview">
-						<div class="stroke" id="stroke" :style="{backgroundColor: strokeColor}"></div>
-						<input v-model="strokeWidth" type="range" class="stroke-width" min="1" max="50" step="1"/>
+						<div class="stroke" id="stroke" :style="{'background-color': strokeColor, 'height': strokeWidth}"></div>
+						<vue-slider v-model="strokeWidth" class="stroke-width" :min="1" :max="50" width="120px" :interval="1" ></vue-slider>
 					</div>
 				</div>
 			</div>
@@ -39,11 +41,14 @@
 		<transition name="fade">
 			<div
 				class="layers-wrapper"
-				v-if="showOverlays"
 				@mouseenter="overlaysHovered = true"
 				@mouseleave="overlaysHovered = false"
+				:class="{'active': layersComponentPinned}"
 			>
-				<div class="title">Layers</div>
+				<div class="title">
+					<span>Layers</span>
+					<i class="lni-pin-alt" :class="{'active': layersComponentPinned}" @click="layersComponentPinned = !layersComponentPinned"></i>
+				</div>
 				<div class="split"></div>
 				<div class="layers">
 					<draggable v-model="layers" handle=".handle" ghostClass="ghost" @end="handleLayerOrderChange">
@@ -145,6 +150,7 @@
 			padding: 10px 20px;
 			transition: height 0.2s;
 			height: 30px;
+			
 			overflow: hidden;
 
 			.split {
@@ -160,11 +166,28 @@
 
 			.title {
 				font-size: 20px;
+				display: flex;
+				justify-content: space-between;
 				margin-top: 5px;
 				margin-bottom: 15px;
+
+				i {
+					cursor: pointer;
+					color: #b1b1b1;
+					transition: transform .2s;
+
+					&.active {
+						color: black;
+						transform: rotate(45deg);
+					}
+				}
 			}
 
 			&.module-draw {
+				&.active {
+					height: 200px;
+				}
+
 				.top-row {
 					display: flex;
 					justify-content: space-between;
@@ -224,20 +247,9 @@
 						height: 2px;
 						background-color: rgb(0, 0, 0);
 					}
-
-					// .color-code {
-					// 	margin-top: 10px;
-					// 	border-radius: 5px;
-					// 	outline: none;
-					// 	border: 2px solid #02976d50;
-					// 	padding: 5px;
-					// 	width: 80%;
-					// 	color: #1b2136;
-
-					// 	&:focus {
-					// 		border: 2px solid #02976db0;
-					// 	}
-					// }
+					.stroke-width {
+						margin-top: 20px;
+					}
 				}
 			}
 		}
@@ -265,9 +277,28 @@
 			width: 320px;
 		}
 
+		&.active {
+			min-height: 400px;
+			min-width: 320px;
+		}
+
 		.title {
 			font-size: 20px;
 			margin-bottom: 20px;
+			text-align: left;
+			display: flex;
+			justify-content: space-between;
+
+			i {
+				cursor: pointer;
+				color: #b1b1b1;
+				transition: transform .2s;
+
+				&.active {
+					color: black;
+					transform: rotate(45deg);
+				}
+			}
 		}
 
 		.split {
@@ -320,7 +351,7 @@
 					}
 
 					&.active {
-						color: #22cf9e;
+						color: black;
 					}
 				}
 
@@ -412,6 +443,8 @@ import io from "socket.io-client";
 import paper from "paper";
 import draggable from "vuedraggable";
 import { Chrome } from "vue-color"
+import VueSlider from 'vue-slider-component'
+import '../custom-component-css/vue-slider-component/material.css'
 
 const paths = {}
 let timeOut = null;
@@ -422,19 +455,20 @@ let strokeWidth = 5
 export default {
 	components: {
 		draggable,
-		'chrome-color-picker': Chrome
+		'chrome-color-picker': Chrome,
+		'vue-slider': VueSlider
 	},
 	data() {
 		return {
 			paper: null,
 
 			strokeWidth: 5,
-			strokeColor: '#418225',
+			strokeColor: '#02976c',
 			strokeColorToUpdateTo: '#000000',
 			recentColors: [
-				'blue',
-				'black',
-				'yellow'
+				'#971d02',
+				'#976802',
+				'#360297'
 			],
 
 			showOverlays: false,
@@ -442,6 +476,9 @@ export default {
 			mouseMovedTimeout: null,
 			manualTimeout: false,
 			showColorPicker: false,
+
+			layersComponentPinned: false,
+			drawingModulePinned: false,
 
 			layersAreSelected: false,
 			layers: [],
@@ -690,7 +727,7 @@ export default {
 				open: false,
 				selected: false
 			}
-			console.log(this.layers)
+			layer.activate()
 
 			this.$forceUpdate()
 		},
