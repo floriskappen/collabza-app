@@ -70,14 +70,14 @@
 							>
 								<i class="lni-check-mark-circle"></i>
 							</div>
-							<div class="name">
+							<div class="name" @dblclick="layer.data.edittingName = true, $forceUpdate()">
 								<input
 									v-if="layer.data.edittingName"
 									@blur="layer.data.edittingName = false, $forceUpdate()"
 									@keypress.enter="layer.data.edittingName = false, $forceUpdate()"
 									v-model="layer.data.name" type="text"
 								>
-								<span v-else @dblclick="layer.data.edittingName = true, $forceUpdate()">{{layer.data.name}}</span>
+								<span v-else>{{layer.data.name}}</span>
 							</div>
 							<div 
 								class="option lock"
@@ -105,7 +105,7 @@
 					</div>
 
 					<!-- Copy layer -->
-					<div class="icon copy">
+					<div class="icon copy" @click="copySelectedLayers()" :class="{'active': layersAreSelected}">
 						<i class="lni-files"></i>
 					</div>
 
@@ -263,7 +263,6 @@
 		color: #1b2136;
 		width: 150px;
 		height: 0px;
-		padding: 0px 30px;
 		padding-top: 15px;
 		padding-bottom: 40px;
 		border-radius: 5px;
@@ -283,6 +282,7 @@
 		}
 
 		.title {
+			padding: 0px 30px;
 			font-size: 20px;
 			margin-bottom: 20px;
 			text-align: left;
@@ -302,6 +302,7 @@
 		}
 
 		.split {
+			padding: 0px 30px;
 			width: 100%;
 			height: 0px;
 			border-bottom: 1px solid rgba(0, 0, 0, 0.062);
@@ -309,8 +310,10 @@
 		}
 
 		.layers {
-			width: 100%;
+			padding: 0px 30px;
+			width: calc(100% - 60px);
 			height: 300px;
+			overflow: auto;
 
 			.layer {
 				display: flex;
@@ -319,6 +322,7 @@
 				border: 1px solid #02976d21;
 				margin-bottom: 5px;
 				border-radius: 5px;
+				width: 240px;
 
 				&.ghost {
 					background-color: #dfdfdf;
@@ -357,7 +361,7 @@
 
 				.name {
 					flex-shrink: 0;
-					width: 180px;
+					width: 120px;
 					text-align: left;
 
 					span {
@@ -370,9 +374,9 @@
 
 					input {
 						// transform: translateY(5px);
-						position: absolute;
+						// position: absolute;
 						padding: 5px 10px;
-						width: 150px;
+						width: 90px;
 						font-size: 16px;
 						border: 1px solid #c0c0c0;
 						outline: none;
@@ -383,6 +387,7 @@
 		}
 
 		.bottom-icons {
+			padding: 0px 30px;
 			position: absolute;
 			top: 390px;
 			height: 30px;
@@ -407,7 +412,7 @@
 					background-color: #02976c;
 				}
 
-				&.remove {
+				&.remove, &.copy {
 					color: #b1b1b1;
 					cursor: default;
 
@@ -749,6 +754,36 @@ export default {
 			this.layersAreSelected = true
 			this.$forceUpdate()
 		},
+		copySelectedLayers() {
+			if (!this.layersAreSelected) return
+
+			let newLayers = []
+			for (let i = 0; i < this.layers.length; i++) {
+				const layer = this.layers[i]
+
+				if (layer.data.selected) {
+					const newLayer = layer.copyTo(this.paper.project)
+					newLayer.data.name = `Copy of ${newLayer.data.name}`
+					newLayer.insertAbove(layer)
+					newLayers.push([i, layer._id, newLayer])
+					layer.data.selected = false
+				}
+			}
+
+			if (newLayers.length) {
+				newLayers.forEach((newLayer, index) => {
+					let oldLayerIndex = -1
+					this.layers.forEach((layer, index) => {
+						if (layer._id === newLayer[1]) oldLayerIndex = index
+					})
+
+					if (oldLayerIndex >= 0) {
+						this.layers.splice(oldLayerIndex, 0, newLayer[2])
+					}
+				})
+				this.$forceUpdate()
+			}
+		},
 		removeSelectedLayers() {
 			if (!this.layersAreSelected) return
 
@@ -757,7 +792,6 @@ export default {
 
 			for (let i = 0; i < this.layers.length; i++) {
 				const layer = this.layers[i]
-				console.log(layer._id)
 				if (layer.data.selected) {
 					if (layer.locked) {
 						lockedSelectedLayers = true
