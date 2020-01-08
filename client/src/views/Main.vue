@@ -716,19 +716,16 @@ export default {
 			if (!this.layersAreSelected) return
 
 			let indexToRemove = []
-			// this.layers.forEach((layer, index) => {
-			// 	console.log(layer._id)
-				// if (layer.data.selected && !layer.locked) {
-				// 	layer.remove()
-				// 	this.layers.splice(index, 1)
-				// 	hasRemoved = true
-				// }
-			// })
+			let lockedSelectedLayers = false
 
 			for (let i = 0; i < this.layers.length; i++) {
 				const layer = this.layers[i]
 				console.log(layer._id)
-				if (layer.data.selected && !layer.locked) {
+				if (layer.data.selected) {
+					if (layer.locked) {
+						lockedSelectedLayers = true
+						continue
+					}
 					layer.remove()
 					indexToRemove.push(i)
 				}
@@ -738,6 +735,7 @@ export default {
 				this.layers = this.layers.filter((value, index) => {
 					return indexToRemove.indexOf(index) == -1
 				})
+				if (!lockedSelectedLayers) this.layersAreSelected = false
 				this.$forceUpdate()
 			}
 		}
