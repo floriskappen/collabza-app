@@ -46,19 +46,19 @@
 				<div class="title">Layers</div>
 				<div class="split"></div>
 				<div class="layers">
-					<draggable v-model="layers" handle=".handle" ghostClass="ghost">
-						<div class="layer" v-for="(layer, index) in layers" :key="index">
+					<draggable v-model="layers" handle=".handle" ghostClass="ghost" @end="handleLayerOrderChange">
+						<div class="layer" v-for="(layer, index) in layers" :key="index" @click="paper.project.layers[layer._index].activate()">
 							<div class="option visibility">
 								<i class="lni-close"></i>
 							</div>
 							<div class="option dropdown">
 								<i class="lni-chevron-right"></i>
 							</div>
-							<div class="option icon">
+							<div class="option icon" v-if="paper.project.activeLayer.id === layer.id">
 								<i class="lni-layers"></i>
 							</div>
 							<div class="name">
-								<span>{{layer.name}}</span>
+								<span>{{layer.data.name}}</span>
 							</div>
 							<div class="option drag handle">
 								<i class="lni-hand"></i>
@@ -376,27 +376,7 @@ export default {
 			showColorPicker: false,
 
 			layers: [
-				{
-					name: "Layer one"
-				},
-				{
-					name: "Really long layer name"
-				},
-				{
-					name: "Really long layer name 2"
-				},
-				{
-					name: "Really long layer name"
-				},
-				{
-					name: "Really long layer name"
-				},
-				{
-					name: "Really long layer name"
-				},
-				{
-					name: "Really long layer name"
-				}
+
 			],
 
 			mousePosition: {
@@ -521,6 +501,19 @@ export default {
 				this.paper.view.scale(1.1, point);
 			}
 		});
+
+		this.layers.push(new paper.Layer())
+		this.layers.push(new paper.Layer())
+		this.layers.push(new paper.Layer())
+
+		this.layers[0].data.name = "Layer 1"
+		this.layers[1].data.name = "Layer 2"
+		this.layers[2].data.name = "Layer 3"
+
+		this.layers[0].bringToFront()
+		this.layers[2].sendToBack()
+
+		this.layers[0].activate()
 	},
 	watch: {
 		strokeWidth(value) {
@@ -571,6 +564,26 @@ export default {
 				this.strokeColor = this.strokeColorToUpdateTo
 				strokeColor = this.strokeColorToUpdateTo
 			}
+		},
+		handleLayerOrderChange(e) {
+			// console.log(e)
+			// console.log(`Layer old index: ${this.paper.project.activeLayer._index}`)
+			// this.layers[e.newIndex]._index = e.newIndex
+			// this.layers[e.newIndex].activate()
+			// console.log(`Layer old ID: ${this.paper.project.activeLayer._index}`)
+			// this.layers[e.newIndex].id = e.newIndex + 1
+			// console.log(`Layer changed ID: ${this.paper.project.activeLayer._index}`)
+			const reversedLayers = this.layers.slice().reverse()
+			if (e.newIndex >= this.layers.length - 1) {
+				this.layers[e.newIndex].sendToBack()
+			} else if (e.newIndex > 0) {
+				this.layers[e.newIndex].insertAbove(reversedLayers[e.newIndex - 1])
+			} else {
+				this.layers[e.newIndex].bringToFront()
+			}
+			this.layers.forEach((layer) => {
+				console.log(layer.data.name, layer._index)
+			})
 		}
 	}
 };
