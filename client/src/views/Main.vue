@@ -1068,6 +1068,7 @@ export default {
 		selectLayer(layer) {
 			console.log(layer)
 			if (layer.data.selected) {
+				layer.selected = false
 				layer.data.selected = false
 				let isAnyLayerStillSelected = false
 				this.layers.forEach(layer => {
@@ -1081,6 +1082,7 @@ export default {
 			}
 
 			layer.data.selected = true
+			layer.selected = true
 			this.layersAreSelected = true
 			this.$forceUpdate()
 		},
