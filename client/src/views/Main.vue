@@ -1037,14 +1037,13 @@ export default {
 		handleLayerOrderChange(e) {
 			let layerIsActive = false
 			if (this.layers[e.newIndex].id === paper.project.activeLayer.id) layerIsActive = true
-			console.log(this.layers[e.newIndex].id, paper.project.activeLayer.id)
 			const reversedLayers = this.layers.slice().reverse()
-			if (e.newIndex >= this.layers.length - 1) {
-				this.layers[e.newIndex].bringToFront()
+			if (e.newIndex >= paper.project.layers.length - 1) {
+				this.layers[e.newIndex].sendToBack()
 			} else if (e.newIndex > 0) {
 				this.layers[e.newIndex].insertAbove(reversedLayers[e.newIndex - 1])
 			} else {
-				this.layers[e.newIndex].sendToBack()
+				this.layers[e.newIndex].bringToFront()
 			}
 
 			if (layerIsActive) this.layers[e.newIndex].activate()
