@@ -1047,6 +1047,9 @@ export default {
 		const lineTool = new paper.Tool()
 		eraseTool.minDistance = 5
 		lineTool.onMouseDown = function(event) {
+			if (paper.project.activeLayer.locked) {
+				return
+			}
 			const path = new paper.Path()
 			path.strokeColor = 'black'
 			path.data.temporary = true
@@ -1094,6 +1097,9 @@ export default {
 			paper.project.activeLayer.addChild(path)
 		}
 		lineTool.onMouseDrag = function(event) {
+			if (paper.project.activeLayer.locked) {
+				return
+			}
 			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
 			if (path) {
 				if (path.segments[1]) {
@@ -1104,6 +1110,9 @@ export default {
 			}
 		}
 		lineTool.onMouseUp = function(event) {
+			if (paper.project.activeLayer.locked) {
+				return
+			}
 			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
 			if (path) {
 				if (path.segments[1]) {
