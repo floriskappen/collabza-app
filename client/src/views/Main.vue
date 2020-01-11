@@ -33,17 +33,56 @@
 						<div class="color recent" @click="updateStrokeColor({ hex8: recentColors[2] }, true)" :style="{backgroundColor: recentColors[2]}"></div>
 						<div class="color recent" @click="updateStrokeColor({ hex8: recentColors[1] }, true)" :style="{backgroundColor: recentColors[1]}"></div>
 						<div class="color recent" @click="updateStrokeColor({ hex8: recentColors[0] }, true)" :style="{backgroundColor: recentColors[0]}"></div>
-						<div class="custom" @click="showColorPicker = !showColorPicker">
-							<i class="lni-color-pallet"></i>
-						</div>
-						<chrome-color-picker v-if="showColorPicker && overlaysHovered" class="color-picker" :value="strokeColor" @input="updateStrokeColor"></chrome-color-picker>
 					</div>
-					<div class="split"></div>
 					<div class="stroke-preview">
+						<chrome-color-picker v-if="showDrawingColorPicker && overlaysHovered" class="color-picker" :value="strokeColor" @input="updateStrokeColor"></chrome-color-picker>
 						<div class="stroke-wrapper">
-							<div class="stroke" id="stroke" :style="{'background-color': strokeColor, 'height': `${strokeWidth}px`}"></div>
+							<div class="stroke" @click="showDrawingColorPicker = !showDrawingColorPicker" id="stroke" :style="{'background-color': strokeColor, 'height': `${strokeWidth}px`}"></div>
 						</div>
 						<vue-slider v-model="strokeWidth" class="stroke-width" :min="1" :max="50" width="120px" :interval="1" ></vue-slider>
+					</div>
+				</div>
+				<div class="module module-shape" :class="{'active': shapeModulePinned}">
+					<div class="title">
+						<span>Shape</span>
+						<i class="lni-pin-alt" :class="{'active': shapeModulePinned}" @click="shapeModulePinned = !shapeModulePinned"></i>
+					</div>
+					<div class="split"></div>
+					<div class="shape-selector">
+						<div class="row top">
+							<div class="shape line">
+								<i class="lni-minus"></i>
+							</div>
+							<div class="shape rectangle">
+								<i class="lni-stop"></i>
+							</div>
+						</div>
+						<div class="row bottom">
+							<div class="shape ellipse">
+								<i class="lni-spinner-solid"></i>
+							</div>
+							<div class="shape star">
+								<i class="lni-star"></i>
+							</div>
+						</div>
+					</div>
+					<div class="split"></div>
+					<div class="option stroke-preview">
+						<div class="label">STROKE</div>
+						<div class="stroke-wrapper">
+							<chrome-color-picker v-if="showShapeStrokeColorPicker && overlaysHovered" class="color-picker" v-model="shapeStrokeColor"></chrome-color-picker>
+							<div class="stroke" @click="showShapeStrokeColorPicker = !showShapeStrokeColorPicker" id="stroke" :style="{'background-color': shapeStrokeColor.hex8, 'height': `${shapeStrokeWidth}px`}"></div>
+						</div>
+						<vue-slider v-model="shapeStrokeWidth" class="stroke-width" :min="1" :max="50" width="120px" :interval="1" ></vue-slider>
+					</div>
+					<div class="split"></div>
+					<div class="option fill">
+						<div class="label">FILL</div>
+						<div class="fill-color">
+							<span>Color:</span>
+							<div class="color" @click="showShapeFillColorPicker = !showShapeFillColorPicker" :style="{'background-color': shapeFillColor.hex8}"></div>
+							<chrome-color-picker v-if="showShapeFillColorPicker && overlaysHovered" class="color-picker" v-model="shapeFillColor"></chrome-color-picker>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -237,6 +276,7 @@
 			padding: 10px 20px;
 			transition: height 0.2s;
 			height: 84px;
+			margin-bottom: 20px;
 			
 			overflow: hidden;
 
@@ -267,14 +307,9 @@
 			}
 
 			&.module-draw {
-				&:hover {
-					height: 250px;
+				&:hover, &.active {
+					height: 235px;
 				}
-
-				&.active {
-					height: 250px;
-				}
-
 
 				.top-row {
 					display: flex;
@@ -319,11 +354,6 @@
 						cursor: pointer;
 						font-size: 20px;
 					}
-
-					.color-picker {
-						position: absolute;
-						left: 100%;
-					}
 				}
 
 				.stroke-preview {
@@ -331,6 +361,13 @@
 					display: flex;
 					align-items: center;
 					flex-direction: column;
+					margin-top: 15px;
+
+					.color-picker {
+						position: absolute;
+						left: 100%;
+					}
+
 					.stroke-wrapper {
 						width: 100%;
 						display: flex;
@@ -341,10 +378,111 @@
 							width: 80%;
 							height: 5px;
 							background-color: rgb(0, 0, 0);
+							cursor: pointer;
 						}
 					}
 					.stroke-width {
-						margin-top: 20px;
+						margin-top: 10px;
+					}
+				}
+			}
+
+			&.module-shape {
+				height: 118px;
+				&:hover, &.active {
+					height: 345px;
+				}
+
+				.shape-selector {
+					width: 100%;
+					
+					.row {
+						width: 100%;
+						display: flex;
+						justify-content: space-between;
+						
+						&.top {
+							margin-bottom: 5px;
+						}
+
+						.shape {
+							width: 30px;
+							height: 30px;
+							border-radius: 5px;
+							color: black;
+							display: flex;
+							justify-content: center;
+							align-items: center;
+							cursor: pointer;
+							transition: background-color 0.2s, color 0.2s;
+
+							&:hover {
+								color: white;
+								background-color: #02976c;
+							}
+
+							&.active {
+								color: white;
+								background-color: #02976c;
+							}
+						}
+					}
+
+				}
+
+				.option {
+					.label {
+						margin-bottom: 15px;
+						font-size: 14px;
+						font-weight: 600;
+						color: #6d6d6d;
+					}
+				}
+
+				.stroke-preview {
+					width: 100%;
+					display: flex;
+					align-items: center;
+					flex-direction: column;
+
+					.color-picker {
+						position: absolute;
+						left: 100%;
+					}
+
+					.stroke-wrapper {
+						width: 100%;
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						height: 50px;
+						.stroke {
+							width: 80%;
+							height: 5px;
+							background-color: rgb(0, 0, 0);
+							cursor: pointer;
+						}
+					}
+					.stroke-width {
+						margin-top: 10px;
+					}
+				}
+
+				.fill-color {
+					width: 100%;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					.color {
+						width: 25px;
+						height: 25px;
+						border-radius: 15px;
+						cursor: pointer;
+					}
+
+					.color-picker {
+						position: absolute;
+						left: 100%;
 					}
 				}
 			}
@@ -676,6 +814,10 @@ let timeOut = null;
 let strokeColor = '#418225'
 let strokeWidth = 15
 
+let shapeStrokeColor = '#418225'
+let shapeStrokeWidth = 8
+let shapeFillColor = 'white'
+
 export default {
 	components: {
 		draggable,
@@ -694,16 +836,27 @@ export default {
 				'#976802',
 				'#360297'
 			],
+			showDrawingColorPicker: false,
+
+			shapeStrokeColor: {
+				hex8: '#418225'
+			},
+			shapeStrokeWidth: 8,
+			showShapeStrokeColorPicker: false,
+			shapeFillColor: {
+				hex8: 'blue'
+			},
+			showShapeFillColorPicker: false,
 
 			showOverlays: false,
 			overlaysHovered: false,
 			mouseMovedTimeout: null,
 			manualTimeout: false,
-			showColorPicker: false,
 			currentTool: 0,
 
 			layersComponentPinned: false,
 			drawingModulePinned: false,
+			shapeModulePinned: false,
 
 			layersAreSelected: false,
 			layers: [],
@@ -930,7 +1083,16 @@ export default {
 		strokeWidth(value) {
 			strokeWidth = value
 		},
-		showColorPicker(value) {
+		shapeStrokeWidth(value) {
+			shapeStrokeWidth = value
+		},
+		shapeStrokeColor(value) {
+			shapeStrokeColor = value.hex8
+		},
+		shapeFillColor(value) {
+			shapeFillColor = value.hex8
+		},
+		showDrawingColorPicker(value) {
 			if (value === false) {
 				if (this.strokeColor !== this.strokeColorToUpdateTo) {					
 					this.recentColors[2] = this.recentColors[1]
