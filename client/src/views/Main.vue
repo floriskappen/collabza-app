@@ -876,33 +876,6 @@ export default {
 		const socket = io.connect("localhost:3000");
 		
 		let currentActivePathID = null
-		function handleMouseDown(event, id) {
-			const path = new paper.Path();
-			path.data = {
-				name: `Path ${paper.project.activeLayer.children.length}`,
-				owner: 'me'
-			}
-			// paths[id].onMouseDrag = function(event) {
-			// 	const point = event.nearestPoint
-
-			// }
-			path.strokeColor = strokeColor;
-			path.strokeWidth = strokeWidth;
-
-			currentActivePathID = path.id
-			paper.project.activeLayer.addChild(path)
-		}
-		function handleMouseDrag(event, id) {
-			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
-			if (path) {
-				path.add(event.point);
-				path.smooth(100);
-			}
-		}
-		function handleMouseUp(event, id) {
-			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
-			path.simplify(0.5);
-		}
 
 		function sendDataInstantly() {
 			clearInterval(timeOut);
@@ -920,30 +893,38 @@ export default {
 
 		const drawingTool = new paper.Tool()
 		drawingTool.minDistance = 5;
-		drawingTool.onKeyDown = function(event) {
-			if (event.key == "right") {
-				this.paper.view.center = this.paper.view.center - 500;
-			}
-		};
 		drawingTool.onMouseDown = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
-			// sendDataSlowly();
-			handleMouseDown(event, "me");
+			const path = new paper.Path();
+			path.data = {
+				name: `Path ${paper.project.activeLayer.children.length}`,
+				owner: 'me'
+			}
+			path.strokeColor = strokeColor;
+			path.strokeWidth = strokeWidth;
+
+			currentActivePathID = path.id
+			paper.project.activeLayer.addChild(path)
 		};
 		drawingTool.onMouseDrag = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
-			handleMouseDrag(event, "me");
+			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
+			if (path) {
+				path.add(event.point);
+				path.smooth(100);
+			}
 		};
 		drawingTool.onMouseUp = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
 			}
-			handleMouseUp(event, "me");
-			// sendDataInstantly();
+			// handleMouseUp(event, "me");
+			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
+			path.simplify(0.5);
 		};
 
 		const eraseTool = new paper.Tool()
@@ -1001,6 +982,12 @@ export default {
 		eraseTool.onMouseUp = function(event) {
 			eraser.remove()
 		}
+
+		const lineTool = new paper.Tool()
+		eraseTool.minDistance = 5
+		// lineTool.onMouseDown(event) {
+			
+		// }
 
 		this.tools.push(drawingTool)
 		this.tools.push(eraseTool)
