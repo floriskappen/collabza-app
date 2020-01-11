@@ -1023,7 +1023,7 @@ export default {
 			}, 50);
 		}
 
-		function addToUndoRedoQueue(type, itemID, layerID) {
+		function addToUndoRedoQueue(actionArray) {
 			if (undoRedoQueue.length) {
 				undoRedoQueue[undoRedoIsCurrentIndex].isCurrent = false
 			}
@@ -1036,7 +1036,7 @@ export default {
 			undoRedoQueue.splice[undoRedoIsCurrentIndex + 1]
 			undoRedoQueue.push({
 				isCurrent: true,
-				action: [type, itemID, layerID]
+				action: actionArray
 			})
 			undoRedoIsCurrentIndex = undoRedoQueue.length - 1
 			console.log(undoRedoQueue)
@@ -1083,7 +1083,7 @@ export default {
 				paper.project.activeLayer.children.splice(pathIndex, 1)
 				return
 			}
-			addToUndoRedoQueue('add item', path, paper.project.activeLayer)
+			addToUndoRedoQueue(['add item', path, paper.project.activeLayer])
 		};
 
 		const eraseTool = new paper.Tool()
@@ -1232,7 +1232,7 @@ export default {
 			line.data.type = 'Line'
 			paper.project.activeLayer.addChild(line)
 			path.remove()
-			addToUndoRedoQueue('add item', line, paper.project.activeLayer)
+			addToUndoRedoQueue(['add item', line, paper.project.activeLayer])
 		}
 
 		this.tools.push(drawingTool)
@@ -1447,7 +1447,10 @@ export default {
 				const itemIndex = item._index
 				item.remove()
 				layer.children.splice(itemIndex, 1)
-				this.$forceUpdate()
+			} else if (actionToUndo.action[0] === 'remove item') {
+				const item = actionToUndo.action[1]
+				const layer = actionToUndo.action[2]
+				layer.addChild(item)
 			}
 
 			actionToUndo.isCurrent = false
@@ -1458,6 +1461,7 @@ export default {
 			} else {
 				undoRedoIsCurrentIndex = -1
 			}
+			this.$forceUpdate()
 			console.log(undoRedoQueue)
 		},
 		redo() {
@@ -1469,6 +1473,12 @@ export default {
 				const item = actionToRedo.action[1]
 				const layer = actionToRedo.action[2]
 				layer.addChild(item)
+			} else if (actionToRedo.action[0] === 'remove item') {
+				const item = actionToRedo.action[1]
+				const layer = actionToRedo.action[2]
+				const itemIndex = item._index
+				item.remove()
+				layer.children.splice(itemIndex, 1)
 			}
 
 			if (currentAction) {
@@ -1608,8 +1618,33 @@ export default {
 		},
 		removeChildLayer(child) {
 			if (child.locked) return
+
+			this.addToUndoRedoQueue([
+				'remove item',
+				child,
+				child.parent
+			])
+
 			child.remove()
 			this.$forceUpdate()
+		},
+		addToUndoRedoQueue(actionArray) {
+			if (undoRedoQueue.length) {
+				undoRedoQueue[undoRedoIsCurrentIndex].isCurrent = false
+			}
+			if (undoRedoIsCurrentIndex < undoRedoQueue.length - 1) {
+				undoRedoQueue.splice(undoRedoIsCurrentIndex + 1)
+			}
+			if (undoRedoIsCurrentIndex > 48) {
+				undoRedoQueue.splice(0, 1)
+			}
+			undoRedoQueue.splice[undoRedoIsCurrentIndex + 1]
+			undoRedoQueue.push({
+				isCurrent: true,
+				action: actionArray
+			})
+			undoRedoIsCurrentIndex = undoRedoQueue.length - 1
+			console.log(undoRedoQueue)
 		}
 	},
 	directives: {
