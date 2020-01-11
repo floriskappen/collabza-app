@@ -50,18 +50,34 @@
 					<div class="split"></div>
 					<div class="shape-selector">
 						<div class="row top">
-							<div class="shape line">
+							<div 
+								class="shape line" 
+								@click="tools[2].activate(), currentTool = 2"
+								:class="{'active': currentTool === 2}"
+							>
 								<i class="lni-minus"></i>
 							</div>
-							<div class="shape rectangle">
+							<div 
+								class="shape rectangle"
+								@click="tools[3].activate(), currentTool = 3"
+								:class="{'active': currentTool === 3}"
+							>
 								<i class="lni-stop"></i>
 							</div>
 						</div>
 						<div class="row bottom">
-							<div class="shape ellipse">
+							<div 
+								class="shape ellipse"
+								@click="tools[4].activate(), currentTool = 4"
+								:class="{'active': currentTool === 4}"
+							>
 								<i class="lni-spinner-solid"></i>
 							</div>
-							<div class="shape star">
+							<div 
+								class="shape star"
+								@click="tools[5].activate(), currentTool = 5"
+								:class="{'active': currentTool === 5}"
+							>
 								<i class="lni-star"></i>
 							</div>
 						</div>
@@ -76,12 +92,23 @@
 						<vue-slider v-model="shapeStrokeWidth" class="stroke-width" :min="1" :max="50" width="120px" :interval="1" ></vue-slider>
 					</div>
 					<div class="split"></div>
-					<div class="option fill">
+					<div class="option fill" v-if="currentTool !== 2">
 						<div class="label">FILL</div>
 						<div class="fill-color">
 							<span>Color:</span>
 							<div class="color" @click="showShapeFillColorPicker = !showShapeFillColorPicker" :style="{'background-color': shapeFillColor.hex8}"></div>
 							<chrome-color-picker v-if="showShapeFillColorPicker && overlaysHovered" class="color-picker" v-model="shapeFillColor"></chrome-color-picker>
+						</div>
+					</div>
+					<div class="option custom">
+						<div 
+							class="line" 
+							:class="{'active': lineToolSnap}"
+							@click="lineToolSnap = !lineToolSnap"
+							v-if="currentTool === 2"
+						>
+							<span>Snap</span>
+							<i class="lni-check-box"></i>
 						</div>
 					</div>
 				</div>
@@ -485,6 +512,36 @@
 						left: 100%;
 					}
 				}
+
+				.custom {
+					width: 100%;
+					
+					.line {
+						cursor: pointer;
+						margin-top: 15px;
+						width: calc(100% - 40px);
+						padding: 10px 20px;
+						display: flex;
+						justify-content: center;
+						border-radius: 5px;
+						color: rgb(190, 187, 187);
+						i {
+							margin-left: 10px;
+						}
+
+						transition: color .2s, background-color .2s;
+
+						&:hover {
+							background-color: #02976c;
+							color: white;
+						}
+
+						&.active {
+							background-color: white;
+							color: black;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -818,6 +875,8 @@ let shapeStrokeColor = '#418225'
 let shapeStrokeWidth = 8
 let shapeFillColor = 'white'
 
+let lineToolSnap = false
+
 export default {
 	components: {
 		draggable,
@@ -847,6 +906,8 @@ export default {
 				hex8: 'blue'
 			},
 			showShapeFillColorPicker: false,
+
+			lineToolSnap: false,
 
 			showOverlays: false,
 			overlaysHovered: false,
@@ -985,14 +1046,92 @@ export default {
 
 		const lineTool = new paper.Tool()
 		eraseTool.minDistance = 5
-		// lineTool.onMouseDown(event) {
-			
-		// }
+		lineTool.onMouseDown = function(event) {
+			const path = new paper.Path()
+			path.strokeColor = 'black'
+			path.data.temporary = true
+			// path.data.name = 'Shape'
+			path.strokeColor = shapeStrokeColor
+			path.strokeWidth = shapeStrokeWidth
+			path.opacity = 0.5
+			if (lineToolSnap) {
+				const closestDistance = {
+					distance: 50,
+					point: null
+				}
+				paper.project.activeLayer.children.forEach(child => {
+					if (child.data.type = 'Line') {
+						const segment1 = child.segments[0]
+						if (segment1) {
+							const distance = event.point.getDistance(segment1._point)
+							if (distance < closestDistance.distance) {
+								closestDistance.distance = distance
+								closestDistance.point = segment1._point
+							}
+						}
+
+						const segment2 = child.segments[1]
+						console.log(segment2)
+						if (segment2) {
+							const distance = event.point.getDistance(segment2._point)
+							if (distance < closestDistance.distance) {
+								closestDistance.distance = distance
+								closestDistance.point = segment2._point
+							}
+						}
+					}
+				})
+
+				if (closestDistance.point) {
+					path.add(closestDistance.point)
+				} else {
+					path.add(event.point)
+				}
+			} else {
+				path.add(event.point)
+			}
+			currentActivePathID = path.id
+			paper.project.activeLayer.addChild(path)
+		}
+		lineTool.onMouseDrag = function(event) {
+			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
+			if (path) {
+				if (path.segments[1]) {
+					path.segments[1].remove()
+					path.segments.slice(1, 1)
+				}
+				path.add(event.point)
+			}
+		}
+		lineTool.onMouseUp = function(event) {
+			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
+			if (path) {
+				if (path.segments[1]) {
+					path.segments[1].remove()
+					path.segments.slice(1, 1)
+				}
+				path.add(event.point)
+				path.opacity = 1
+			}
+			let index = 0
+			paper.project.activeLayer.children.forEach(child => {
+				if (child.data.type === 'Line') {
+					index += 1
+				}
+			})
+			const line = new paper.Path.Line(path.segments[0].point, path.segments[1].point)
+			line.strokeColor = shapeStrokeColor
+			line.strokeWidth = shapeStrokeWidth
+			line.data.name = `Line ${index + 1}`
+			line.data.type = 'Line'
+			paper.project.activeLayer.addChild(line)
+			path.remove()
+		}
 
 		this.tools.push(drawingTool)
 		this.tools.push(eraseTool)
+		this.tools.push(lineTool)
 		this.tools[0].activate()
-		console.log(paper.tool)
 
 		socket.on("get_full_drawing", data => {
 			if (!paths[data.id]) {
@@ -1037,18 +1176,18 @@ export default {
 			}
 		}, 1000);
 
-		window.addEventListener("wheel", e => {
-			if (this.overlaysHovered) return
-			const point = new paper.Point(
-				this.mousePosition.x,
-				this.mousePosition.y
-			);
-			if (e.deltaY > 0 && this.paper.view.zoom > 0.5) {
-				this.paper.view.scale(0.9, point);
-			} else if (e.deltaY < 0 && this.paper.view.zoom < 2) {
-				this.paper.view.scale(1.1, point);
-			}
-		});
+		// window.addEventListener("wheel", e => {
+		// 	if (this.overlaysHovered) return
+		// 	const point = new paper.Point(
+		// 		this.mousePosition.x,
+		// 		this.mousePosition.y
+		// 	);
+		// 	if (e.deltaY > 0 && this.paper.view.zoom > 0.5) {
+		// 		this.paper.view.scale(0.9, point);
+		// 	} else if (e.deltaY < 0 && this.paper.view.zoom < 2) {
+		// 		this.paper.view.scale(1.1, point);
+		// 	}
+		// });
 
 		for (let index = 0; index < 3; index++) {
 			this.layers.push(new paper.Layer())
@@ -1078,6 +1217,9 @@ export default {
 		},
 		shapeFillColor(value) {
 			shapeFillColor = value.hex8
+		},
+		lineToolSnap(value) {
+			lineToolSnap = value
 		},
 		showDrawingColorPicker(value) {
 			if (value === false) {
