@@ -961,7 +961,8 @@ export default {
 			const path = new paper.Path();
 			path.data = {
 				name: `Path ${paper.project.activeLayer.children.length}`,
-				owner: 'me'
+				owner: 'me',
+				type: 'Path'
 			}
 			path.strokeColor = strokeColor;
 			path.strokeWidth = strokeWidth;
@@ -1074,7 +1075,6 @@ export default {
 						}
 
 						const segment2 = child.segments[1]
-						console.log(segment2)
 						if (segment2) {
 							const distance = event.point.getDistance(segment2._point)
 							if (distance < closestDistance.distance) {
@@ -1296,25 +1296,25 @@ export default {
 			} else if (layer.data.filter === 'path') {
 				const childrenToReturn = []
 				layer.children.forEach(child => {
-					if (child.className === 'Path') childrenToReturn.push(child)
+					if (child.data.type === 'Path') childrenToReturn.push(child)
 				})
 				return childrenToReturn
 			} else if (layer.data.filter === 'shape') {
 				const childrenToReturn = []
 				layer.children.forEach(child => {
-					if (child.className === 'Shape') childrenToReturn.push(child)
+					if (child.data.type === 'Line' || child.data.type === 'Rectangle' || child.data.type === 'Circle' || child.data.type === 'Star') childrenToReturn.push(child)
 				})
 				return childrenToReturn
 			} else if (layer.data.filter === 'text') {
 				const childrenToReturn = []
 				layer.children.forEach(child => {
-					if (child.className === 'PointText') childrenToReturn.push(child)
+					if (child.data.type === 'Text') childrenToReturn.push(child)
 				})
 				return childrenToReturn
 			} else if (layer.data.filter === 'raster') {
 				const childrenToReturn = []
 				layer.children.forEach(child => {
-					if (child.className === 'Raster') childrenToReturn.push(child)
+					if (child.data.type === 'Image') childrenToReturn.push(child)
 				})
 				return childrenToReturn
 			} else {
