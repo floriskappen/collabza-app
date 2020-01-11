@@ -1451,6 +1451,29 @@ export default {
 				const item = actionToUndo.action[1]
 				const layer = actionToUndo.action[2]
 				layer.addChild(item)
+			} else if (actionToUndo.action[0] === 'remove layer(s)') {
+				const layersToRestore = actionToUndo.action[1]
+
+				let layersToSort = []
+
+				layersToRestore.forEach(layer => {
+					layersToSort.push(layer)
+					this.layers.splice(layer[2], 0, layer[0])
+				})
+
+				// console.log(layersToSort)
+				layersToSort.sort(function(a, b){
+					return a[1] - b[1]
+				})
+				layersToSort.forEach(layer => {
+					const insertedLayer = paper.project.insertLayer(layer[1], layer[0])
+					insertedLayer.selected = !insertedLayer.selected
+					insertedLayer.selected = false
+					insertedLayer.data.selected = false
+				})
+
+				paper.project.view.update()
+				console.log(this.layers, paper.project.layers)
 			}
 
 			actionToUndo.isCurrent = false
@@ -1462,7 +1485,6 @@ export default {
 				undoRedoIsCurrentIndex = -1
 			}
 			this.$forceUpdate()
-			console.log(undoRedoQueue)
 		},
 		redo() {
 			const currentAction = undoRedoQueue[undoRedoIsCurrentIndex]
@@ -1479,6 +1501,26 @@ export default {
 				const itemIndex = item._index
 				item.remove()
 				layer.children.splice(itemIndex, 1)
+			} else if (actionToRedo.action[0] === 'remove layer(s)') {
+				const layersToRemove = actionToRedo.action[1]
+
+				const layersToSort = []
+				
+				layersToRemove.forEach(layer => {
+					const layerToRemove = paper.project.layers[layer[1]]
+					layerToRemove.remove()
+					layersToSort.push(layer)
+				})
+
+				layersToSort.sort(function(a, b){
+					return b[2] - a[2]
+				})
+
+				layersToSort.forEach(layer => {
+					this.layers.splice(layer[2], 1)
+				})
+
+				paper.project.view.update()
 			}
 
 			if (currentAction) {
@@ -1487,7 +1529,7 @@ export default {
 
 			actionToRedo.isCurrent = true
 			undoRedoIsCurrentIndex += 1
-			console.log(undoRedoQueue)
+			this.$forceUpdate()
 		},
 		updateStrokeColor(value, isFromRecentColor) {
 			this.strokeColorToUpdateTo = value.hex8
@@ -1589,6 +1631,7 @@ export default {
 
 			let indexToRemove = []
 			let lockedSelectedLayers = false
+			let removedLayers = []
 
 			for (let i = 0; i < this.layers.length; i++) {
 				const layer = this.layers[i]
@@ -1597,6 +1640,7 @@ export default {
 						lockedSelectedLayers = true
 						continue
 					}
+					removedLayers.push([layer, layer._index, i])
 					layer.remove()
 					indexToRemove.push(i)
 				}
@@ -1609,6 +1653,10 @@ export default {
 				if (!lockedSelectedLayers) this.layersAreSelected = false
 				this.$forceUpdate()
 			}
+
+			this.addToUndoRedoQueue(['remove layer(s)', removedLayers])
+
+			console.log(paper.project.layers)
 		},
 		hideChildLayer(child) {
 			if (child.locked) return
