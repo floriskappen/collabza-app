@@ -114,6 +114,20 @@
 				</div>
 			</div>
 		</transition>
+		<div class="undo-redo">
+			<div class="buttons-wrapper">
+				<div class="button undo" @click="undo()">
+					<i class="lni-shift-left"></i>
+				</div>
+				<div class="button redo" @click="redo()">
+					<i class="lni-shift-right"></i>
+				</div>
+			</div>
+			<div class="steps-tracker">
+				<span class="steps undo">{{getUndoRedoSteps(true)}}</span>
+				<span class="steps redo">{{getUndoRedoSteps(false)}}</span>
+			</div>
+		</div>
 		<transition name="fade">
 			<div
 				class="layers-wrapper"
@@ -545,6 +559,55 @@
 			}
 		}
 	}
+	
+	.undo-redo {
+		position: absolute;
+		right: 100px;
+		top: 100px;
+		width: 120px;
+
+		.buttons-wrapper {
+			width: 100%;
+			display: flex;
+			justify-content: space-between;
+			
+			.button {
+				width: 40px;
+				height: 40px;
+				background-color: white;
+				color: black;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				border: 1px solid #e2e0e0;
+				border-radius: 5px;
+				font-size: 22px;
+				cursor: pointer;
+				transition: color .2s, background-color .2s;
+
+				&.undo {
+					&:hover { 
+						background-color: #c21b1b;
+						color: white;
+					}
+				}
+
+				&.redo {
+					&:hover {
+						background-color: #b9ae08;
+						color: white;
+					}
+				}
+			}
+		}
+		.steps-tracker {
+			display: flex;
+			color: black;
+			margin-top: 5px;
+			width: 100%;
+			justify-content: space-between;
+		}
+	}
 
 	.layers-wrapper {
 		position: fixed;
@@ -866,6 +929,15 @@ import VueSlider from 'vue-slider-component'
 import '../custom-component-css/vue-slider-component/material.css'
 
 const paths = {}
+
+const undoRedoQueue = [
+	// {
+	// 	isCurrent: false,
+	// 	action: ['remove', ObjectID, LayerID] OR ['edit', ObjectID, LayerID], OR ['add', ObjectID, LayerID]
+	// },
+]
+let undoRedoIsCurrentIndex = -1
+
 let timeOut = null;
 
 let strokeColor = '#418225'
@@ -921,7 +993,6 @@ export default {
 
 			layersAreSelected: false,
 			layers: [],
-
 			tools: [],
 
 			mousePosition: {
@@ -950,6 +1021,25 @@ export default {
 			timeOut = setInterval(() => {
 				socket.emit("send_temp_drawing", paths["me"]);
 			}, 50);
+		}
+
+		function addToUndoRedoQueue(type, itemID, layerID) {
+			if (undoRedoQueue.length) {
+				undoRedoQueue[undoRedoIsCurrentIndex].isCurrent = false
+			}
+			if (undoRedoIsCurrentIndex < undoRedoQueue.length - 1) {
+				undoRedoQueue.splice(undoRedoIsCurrentIndex + 1)
+			}
+			if (undoRedoIsCurrentIndex > 48) {
+				undoRedoQueue.splice(0, 1)
+			}
+			undoRedoQueue.splice[undoRedoIsCurrentIndex + 1]
+			undoRedoQueue.push({
+				isCurrent: true,
+				action: [type, itemID, layerID]
+			})
+			undoRedoIsCurrentIndex = undoRedoQueue.length - 1
+			console.log(undoRedoQueue)
 		}
 
 		const drawingTool = new paper.Tool()
@@ -987,6 +1077,13 @@ export default {
 			// handleMouseUp(event, "me");
 			const path = paper.project.activeLayer.getItem({id: currentActivePathID})
 			path.simplify(0.5);
+			if (path.segments < 1) {
+				const pathIndex = path._index
+				path.remove()
+				paper.project.activeLayer.children.splice(pathIndex, 1)
+				return
+			}
+			addToUndoRedoQueue('add item', path, paper.project.activeLayer)
 		};
 
 		const eraseTool = new paper.Tool()
@@ -1135,6 +1232,7 @@ export default {
 			line.data.type = 'Line'
 			paper.project.activeLayer.addChild(line)
 			path.remove()
+			addToUndoRedoQueue('add item', line, paper.project.activeLayer)
 		}
 
 		this.tools.push(drawingTool)
@@ -1320,6 +1418,66 @@ export default {
 			} else {
 				return []
 			}
+		},
+		getUndoRedoSteps(isUndo) {
+			let steps = 0
+			if (!undoRedoQueue.length) return steps
+
+			const queueLength = undoRedoQueue.length
+
+			if (isUndo) {
+				if (undoRedoIsCurrentIndex < queueLength) {
+					steps = undoRedoIsCurrentIndex
+				}
+				return steps
+			}
+
+			steps = queueLength - 1 - undoRedoIsCurrentIndex
+
+			return steps
+		},
+		undo() {
+			if (undoRedoIsCurrentIndex === -1) return
+			const actionToUndo = undoRedoQueue[undoRedoIsCurrentIndex]
+			const newCurrentAction = undoRedoQueue[undoRedoIsCurrentIndex - 1]
+
+			if (actionToUndo.action[0] === 'add item') {
+				const item = actionToUndo.action[1]
+				const layer = actionToUndo.action[2]
+				const itemIndex = item._index
+				item.remove()
+				layer.children.splice(itemIndex, 1)
+				this.$forceUpdate()
+			}
+
+			actionToUndo.isCurrent = false
+
+			if (newCurrentAction) {
+				newCurrentAction.isCurrent = true
+				undoRedoIsCurrentIndex -= 1
+			} else {
+				undoRedoIsCurrentIndex = -1
+			}
+			console.log(undoRedoQueue)
+		},
+		redo() {
+			const currentAction = undoRedoQueue[undoRedoIsCurrentIndex]
+			const actionToRedo = undoRedoQueue[undoRedoIsCurrentIndex + 1]
+			if (!actionToRedo) return
+
+			if (actionToRedo.action[0] === 'add item') {
+				const item = actionToRedo.action[1]
+				const layer = actionToRedo.action[2]
+				layer.addChild(item)
+			}
+
+			if (currentAction) {
+				currentAction.isCurrent = false
+			}
+
+			actionToRedo.isCurrent = true
+			undoRedoIsCurrentIndex += 1
+			console.log(undoRedoQueue)
 		},
 		updateStrokeColor(value, isFromRecentColor) {
 			this.strokeColorToUpdateTo = value.hex8
