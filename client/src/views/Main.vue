@@ -1493,10 +1493,13 @@ export default {
 				})
 
 				indexOfLayersToRemoveToSort.forEach(i => {
-					console.log(i)
 					this.layers.splice(i, 1)
 				})
+				console.log('Undo:')
 				paper.project.layers.forEach(layer => {
+					console.log(layer.data.name, layer._index)
+				})
+				this.layers.forEach(layer => {
 					console.log(layer.data.name, layer._index)
 				})
 			}
@@ -1558,25 +1561,32 @@ export default {
 
 				layersToAdd.forEach(layerWithIndex => {
 					const layer = layerWithIndex[0][2]
-					const index = layerWithIndex[1]
+					const localIndex = layerWithIndex[1]
+					const paperIndex = layerWithIndex[2]
 
-					// this.layers.splice(index, 0, layer)
-					// layersToAddToSort.push([layer, layerWithIndex[0][1]])
-					console.log(index)
+					this.layers.splice(localIndex, 0, layer)
+					layersToAddToSort.push([layer, paperIndex])
+					// console.log(index)
 					// paper.project.insertLayer(index, layer)
 				})
 
-				// layersToAddToSort.sort((a, b) => {
-				// 	return b[1] - a[1]
-				// })
+				layersToAddToSort.sort((a, b) => {
+					return b[1] - a[1]
+				})
 
-				// layersToAddToSort.forEach(layerWithIndex => {
-				// 	console.log(layerWithIndex[1])
-				// 	paper.project.insertLayer(layerWithIndex[1], layerWithIndex[0])
-				// })
-				console.log(paper.project.layers.forEach(layer =>{
+				layersToAddToSort.forEach(layerWithIndex => {
+					console.log(layerWithIndex[1])
+					paper.project.insertLayer(layerWithIndex[1] + 1, layerWithIndex[0])
+				})
+				console.log('Redo:')
+				console.log('Paper project')
+				paper.project.layers.forEach(layer =>{
 					console.log(layer.data.name, layer._index)
-				}))
+				})
+				console.log('This.layers')
+				this.layers.forEach(layer => {
+					console.log(layer.data.name, layer._index)
+				})
 			}
 
 			if (currentAction) {
@@ -1655,20 +1665,22 @@ export default {
 		copySelectedLayers() {
 			if (!this.layersAreSelected) return
 
+			const newLayersWithOldIndex = []
+
 			let newLayers = []
 			for (let i = 0; i < this.layers.length; i++) {
 				const layer = this.layers[i]
 
 				if (layer.data.selected) {
+					const oldIndex = layer._index
 					const newLayer = layer.copyTo(this.paper.project)
 					newLayer.data.name = `Copy of ${newLayer.data.name}`
 					newLayer.insertAbove(layer)
-					newLayers.push([i, layer._id, newLayer])
+					newLayers.push([i, layer._id, newLayer, oldIndex])
 					layer.data.selected = false
 				}
 			}
 
-			const newLayersWithOldIndex = []
 
 			if (newLayers.length) {
 				newLayers.forEach((newLayer, index) => {
@@ -1681,7 +1693,7 @@ export default {
 						this.layers.splice(oldLayerIndex, 0, newLayer[2])
 					}
 
-					newLayersWithOldIndex.push([newLayer, oldLayerIndex])
+					newLayersWithOldIndex.push([newLayer, oldLayerIndex, newLayer[3]])
 				})
 				this.addToUndoRedoQueue(['copy layer(s)', newLayersWithOldIndex])
 				this.$forceUpdate()
