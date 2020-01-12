@@ -1141,9 +1141,9 @@ export default {
 		eraseTool.onMouseUp = function(event) {
 			eraser.remove()
 		}
+		eraseTool.minDistance = 5
 
 		const lineTool = new paper.Tool()
-		eraseTool.minDistance = 5
 		lineTool.onMouseDown = function(event) {
 			if (paper.project.activeLayer.locked) {
 				return
@@ -1235,9 +1235,55 @@ export default {
 			addToUndoRedoQueue(['add item', line, paper.project.activeLayer])
 		}
 
+		const rectangleTool = new paper.Tool()
+		let rectangle = null
+		rectangleTool.onMouseDown = function(event) {
+			rectangle = new paper.Path.Rectangle(event.point, new paper.Size(0, 0))
+			rectangle.strokeColor = shapeStrokeColor
+			rectangle.strokeWidth = shapeStrokeWidth
+			rectangle.fillColor = shapeFillColor
+
+			let index = 0
+			paper.project.activeLayer.children.forEach(child => {
+				if (child.data.type === 'Rectangle') {
+					index += 1
+				}
+			})
+			rectangle.data = {
+				name: `Rectangle ${index + 1}`,
+				type: 'Rectangle'
+			}
+		}
+		rectangleTool.onMouseDrag = function(event) {
+			// const segment1 = rectangle.segments[]
+			// console.log(event.delta)
+
+			if (paper.Key.isDown('shift')) {
+				const y = event.point.y - rectangle.segments[3]._point.y
+				const x = event.point.x - rectangle.segments[3]._point.x
+				if (x < 0 && y < 0 || x > 0 && y > 0 ) {
+					rectangle.segments[0]._point.x = rectangle.segments[3]._point.x + (event.point.y - rectangle.segments[3]._point.y)
+					rectangle.segments[1]._point.x = rectangle.segments[3]._point.x + (event.point.y - rectangle.segments[3]._point.y)
+					rectangle.segments[1]._point.y = event.point.y
+					rectangle.segments[2]._point.y = event.point.y
+				} else {
+					rectangle.segments[0]._point.x = event.point.x
+					rectangle.segments[1]._point.x = event.point.x
+					rectangle.segments[1]._point.y = rectangle.segments[3]._point.y - (event.point.x - rectangle.segments[3]._point.x)
+					rectangle.segments[2]._point.y = rectangle.segments[3]._point.y - (event.point.x - rectangle.segments[3]._point.x)
+				}
+			} else {
+				rectangle.segments[0]._point.x = event.point.x
+				rectangle.segments[1]._point.x = event.point.x
+				rectangle.segments[1]._point.y = event.point.y
+				rectangle.segments[2]._point.y = event.point.y
+			}
+		}
+
 		this.tools.push(drawingTool)
 		this.tools.push(eraseTool)
 		this.tools.push(lineTool)
+		this.tools.push(rectangleTool)
 		this.tools[0].activate()
 
 		socket.on("get_full_drawing", data => {
@@ -1495,13 +1541,6 @@ export default {
 				indexOfLayersToRemoveToSort.forEach(i => {
 					this.layers.splice(i, 1)
 				})
-				console.log('Undo:')
-				paper.project.layers.forEach(layer => {
-					console.log(layer.data.name, layer._index)
-				})
-				this.layers.forEach(layer => {
-					console.log(layer.data.name, layer._index)
-				})
 			}
 
 			actionToUndo.isCurrent = false
@@ -1566,8 +1605,6 @@ export default {
 
 					this.layers.splice(localIndex, 0, layer)
 					layersToAddToSort.push([layer, paperIndex])
-					// console.log(index)
-					// paper.project.insertLayer(index, layer)
 				})
 
 				layersToAddToSort.sort((a, b) => {
@@ -1577,15 +1614,6 @@ export default {
 				layersToAddToSort.forEach(layerWithIndex => {
 					console.log(layerWithIndex[1])
 					paper.project.insertLayer(layerWithIndex[1] + 1, layerWithIndex[0])
-				})
-				console.log('Redo:')
-				console.log('Paper project')
-				paper.project.layers.forEach(layer =>{
-					console.log(layer.data.name, layer._index)
-				})
-				console.log('This.layers')
-				this.layers.forEach(layer => {
-					console.log(layer.data.name, layer._index)
 				})
 			}
 
