@@ -1024,7 +1024,7 @@ export default {
 		}
 
 		function addToUndoRedoQueue(actionArray) {
-			if (undoRedoQueue.length) {
+			if (undoRedoQueue.length && undoRedoIsCurrentIndex !== -1) {
 				undoRedoQueue[undoRedoIsCurrentIndex].isCurrent = false
 			}
 			if (undoRedoIsCurrentIndex < undoRedoQueue.length - 1) {
@@ -1474,6 +1474,31 @@ export default {
 
 				paper.project.view.update()
 				console.log(this.layers, paper.project.layers)
+			} else if (actionToUndo.action[0] === 'add layer') {
+				const layerToRemove = actionToUndo.action[1]
+				layerToRemove.remove()
+				this.layers.splice(0, 1)
+			} else if (actionToUndo.action[0] === 'copy layer(s)') {
+				const layersToRemove = actionToUndo.action[1]
+				const indexOfLayersToRemoveToSort = []
+				layersToRemove.forEach(layerWithIndex => {
+					const layer = layerWithIndex[0][2]
+					const index = layerWithIndex[1]
+					layer.remove()
+					indexOfLayersToRemoveToSort.push(index)
+				})
+
+				indexOfLayersToRemoveToSort.sort((a, b) => {
+					return b - a
+				})
+
+				indexOfLayersToRemoveToSort.forEach(i => {
+					console.log(i)
+					this.layers.splice(i, 1)
+				})
+				paper.project.layers.forEach(layer => {
+					console.log(layer.data.name, layer._index)
+				})
 			}
 
 			actionToUndo.isCurrent = false
@@ -1521,6 +1546,37 @@ export default {
 				})
 
 				paper.project.view.update()
+			} else if (actionToRedo.action[0] === 'add layer') {
+				const layerToAdd = actionToRedo.action[1]
+				this.layers.unshift(layerToAdd)
+				paper.project.addLayer(layerToAdd)
+				layerToAdd.bringToFront()
+				layerToAdd.activate()
+			} else if (actionToRedo.action[0] === 'copy layer(s)') {
+				const layersToAdd = actionToRedo.action[1]
+				const layersToAddToSort = []
+
+				layersToAdd.forEach(layerWithIndex => {
+					const layer = layerWithIndex[0][2]
+					const index = layerWithIndex[1]
+
+					// this.layers.splice(index, 0, layer)
+					// layersToAddToSort.push([layer, layerWithIndex[0][1]])
+					console.log(index)
+					// paper.project.insertLayer(index, layer)
+				})
+
+				// layersToAddToSort.sort((a, b) => {
+				// 	return b[1] - a[1]
+				// })
+
+				// layersToAddToSort.forEach(layerWithIndex => {
+				// 	console.log(layerWithIndex[1])
+				// 	paper.project.insertLayer(layerWithIndex[1], layerWithIndex[0])
+				// })
+				console.log(paper.project.layers.forEach(layer =>{
+					console.log(layer.data.name, layer._index)
+				}))
 			}
 
 			if (currentAction) {
@@ -1571,8 +1627,8 @@ export default {
 				selected: false,
 				filter: false
 			}
+			this.addToUndoRedoQueue(['add layer', layer])
 			layer.activate()
-
 			this.$forceUpdate()
 		},
 		selectLayer(layer) {
@@ -1612,6 +1668,8 @@ export default {
 				}
 			}
 
+			const newLayersWithOldIndex = []
+
 			if (newLayers.length) {
 				newLayers.forEach((newLayer, index) => {
 					let oldLayerIndex = -1
@@ -1622,7 +1680,10 @@ export default {
 					if (oldLayerIndex >= 0) {
 						this.layers.splice(oldLayerIndex, 0, newLayer[2])
 					}
+
+					newLayersWithOldIndex.push([newLayer, oldLayerIndex])
 				})
+				this.addToUndoRedoQueue(['copy layer(s)', newLayersWithOldIndex])
 				this.$forceUpdate()
 			}
 		},
