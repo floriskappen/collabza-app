@@ -1238,7 +1238,7 @@ export default {
 		const rectangleTool = new paper.Tool()
 		let rectangle = null
 		rectangleTool.onMouseDown = function(event) {
-			rectangle = new paper.Path.Rectangle(event.point, new paper.Size(0, 0))
+			rectangle = new paper.Path.Rectangle(event.point, new paper.Size(20, 20))
 			rectangle.strokeColor = shapeStrokeColor
 			rectangle.strokeWidth = shapeStrokeWidth
 			rectangle.fillColor = shapeFillColor
@@ -1255,9 +1255,6 @@ export default {
 			}
 		}
 		rectangleTool.onMouseDrag = function(event) {
-			// const segment1 = rectangle.segments[]
-			// console.log(event.delta)
-
 			if (paper.Key.isDown('shift')) {
 				const y = event.point.y - rectangle.segments[3]._point.y
 				const x = event.point.x - rectangle.segments[3]._point.x
@@ -1279,11 +1276,53 @@ export default {
 				rectangle.segments[2]._point.y = event.point.y
 			}
 		}
+		rectangleTool.onMouseUp = (event) => {
+			addToUndoRedoQueue(['add item', rectangle, paper.project.activeLayer])
+		}
+
+		const ellipseTool = new paper.Tool()
+		let ellipse = null
+		ellipseTool.onMouseDown = (event) => {
+			ellipse = new paper.Shape.Ellipse(event.point, new paper.Size(20, 20))
+			ellipse.strokeColor = shapeStrokeColor
+			ellipse.strokeWidth = shapeStrokeWidth
+			ellipse.fillColor = shapeFillColor
+
+			let index = 0
+			paper.project.activeLayer.children.forEach(child => {
+				if (child.type && child.type === 'ellipse') {
+					index += 1
+				}
+			})
+			ellipse.data = {
+				name: `Ellipse ${index}`,
+			}
+		}
+		ellipseTool.onMouseDrag = (event) => {
+			if (paper.Key.isDown('shift')) {
+				const y = event.point.y - ellipse.position.y
+				const x = event.point.x - ellipse.position.x
+				if (x < 0 && y < 0 || x > 0 && y > 0 ) {
+					ellipse.size.width += event.delta.x
+					ellipse.size.height -= event.delta.x
+				} else {
+					ellipse.size.width += event.delta.y
+					ellipse.size.height -= event.delta.y
+				}
+			} else {
+				ellipse.size.width += event.delta.x
+				ellipse.size.height -= event.delta.y
+			}
+		}
+		ellipseTool.onMouseUp = (event) => {
+			addToUndoRedoQueue(['add item', ellipse, paper.project.activeLayer])
+		}
 
 		this.tools.push(drawingTool)
 		this.tools.push(eraseTool)
 		this.tools.push(lineTool)
 		this.tools.push(rectangleTool)
+		this.tools.push(ellipseTool)
 		this.tools[0].activate()
 
 		socket.on("get_full_drawing", data => {
@@ -1446,7 +1485,7 @@ export default {
 			} else if (layer.data.filter === 'shape') {
 				const childrenToReturn = []
 				layer.children.forEach(child => {
-					if (child.data.type === 'Line' || child.data.type === 'Rectangle' || child.data.type === 'Circle' || child.data.type === 'Star') childrenToReturn.push(child)
+					if (child.data.type === 'Line' || child.data.type === 'Rectangle' || child.data.type === 'Circle' || child.data.type === 'Star' || child.type === 'ellipse') childrenToReturn.push(child)
 				})
 				return childrenToReturn
 			} else if (layer.data.filter === 'text') {
